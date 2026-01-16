@@ -17,7 +17,6 @@ public class Staff {
 
     public Staff() {
     }
-
     public int getId() {
         return id;
     }
