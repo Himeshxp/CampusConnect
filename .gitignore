@@ -1,0 +1,18 @@
+# Node
+node_modules/
+dist/
+
+# Java / Spring Boot
+target/
+.idea/
+*.iml
+.mvn/wrapper/maven-wrapper.jar
+application.properties.bak
+*.log
+
+# Env
+.env
+
+# OS junk
+.DS_Store
+Thumbs.db

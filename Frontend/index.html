@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Connect Portal</title>
+  <meta name="description" content="Campus Connect Portal - Your one-stop portal for campus services">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Icons+Round">
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- Templates -->
+  <template id="template-landing">
+    <div class="landing-page">
+      <header class="landing-header">
+        <div class="landing-logo">
+          <div class="logo-img">
+            <img src="/Campus.png" alt="Logo Image" width="100" height="auto">
+          </div>
+          <span class="logo-text">Campus Connect Portal</span>
+        </div>
+      </header>
+      
+      <main class="landing-hero">
+        <div class="hero-content">
+          <h1 class="hero-title">
+            Welcome to<br>
+            <span class="hero-highlight">Campus Connect</span>
+          </h1>
+          <p class="hero-description">
+            Your one-stop portal for managing campus complaints, registering for events, and staying connected with your institution.
+          </p>
+          <div class="role-selection">
+            <div class="role-card role-card-student" onclick="navigate('student-login')">
+              <div class="role-icon"><span class="material-icons-round">school</span></div>
+              <div class="role-content">
+                <h3>Login as Student</h3>
+                <p>Access your dashboard, submit complaints, and register for events</p>
+              </div>
+              <span class="role-arrow"><span class="material-icons-round">arrow_forward</span></span>
+            </div>
+            <div class="role-card role-card-staff" onclick="navigate('staff-login')">
+              <div class="role-icon"><span class="material-icons-round">badge</span></div>
+              <div class="role-content">
+                <h3>Login as Staff</h3>
+                <p>Manage complaints, create events, and view analytics</p>
+              </div>
+              <span class="role-arrow"><span class="material-icons-round">arrow_forward</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-decoration">
+          <div class="decoration-circle decoration-1"></div>
+          <div class="decoration-circle decoration-2"></div>
+          <div class="decoration-circle decoration-3"></div>
+        </div>
+      </main>
+      
+      <footer class="landing-footer">
+        <p>&copy; 2025 Campus Connect Portal. All rights reserved.</p>
+      </footer>
+    </div>
+  </template>
+
+  <template id="template-student-login">
+    <div class="login-page">
+      <div class="login-container">
+        <a href="#" class="login-back" onclick="navigate('landing'); return false;">
+          <span class="material-icons-round">arrow_back</span> Back to Home
+        </a>
+        <div class="login-card">
+          <div class="login-header">
+            <div class="login-icon login-icon-student"><span class="material-icons-round">school</span></div>
+            <h1>Student Login</h1>
+            <p>Sign in to access your student portal</p>
+          </div>
+          <form class="login-form" onsubmit="handleStudentLogin(event)">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <div class="input-icon-wrapper">
+                <span class="input-icon"><span class="material-icons-round">mail</span></span>
+                <input type="email" id="email" placeholder="Enter your email" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <div class="input-icon-wrapper">
+                <span class="input-icon"><span class="material-icons-round">lock</span></span>
+                <input type="password" id="password" placeholder="Enter your password" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-student btn-full">Login</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="template-staff-login">
+    <div class="login-page login-page-staff">
+      <div class="login-container">
+        <a href="#" class="login-back" onclick="navigate('landing'); return false;">
+          <span class="material-icons-round">arrow_back</span> Back to Home
+        </a>
+        <div class="login-card">
+          <div class="login-header">
+            <div class="login-icon login-icon-staff"><span class="material-icons-round">badge</span></div>
+            <h1>Staff Login</h1>
+            <p>Sign in to access staff management portal</p>
+          </div>
+          <form class="login-form" onsubmit="handleStaffLogin(event)">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <div class="input-icon-wrapper">
+                <span class="input-icon"><span class="material-icons-round">mail</span></span>
+                <input type="email" id="email" placeholder="Enter your email" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <div class="input-icon-wrapper">
+                <span class="input-icon"><span class="material-icons-round">lock</span></span>
+                <input type="password" id="password" placeholder="Enter your password" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-staff btn-full">Login</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="template-navbar">
+    <nav class="navbar">
+      <div class="navbar-container">
+        <a href="#" class="navbar-brand" data-nav-brand>
+          <div class="navbar-logo">CC</div>
+          <span class="navbar-title">Campus Connect</span>
+        </a>
+        <div class="navbar-links" data-nav-links></div>
+        <div class="navbar-actions">
+          <span class="navbar-user" data-nav-user></span>
+          <button class="navbar-logout" onclick="handleLogout()">
+            <span class="material-icons-round">logout</span>
+          </button>
+        </div>
+        <button class="navbar-mobile-toggle" onclick="toggleMobileNav()">
+          <span class="material-icons-round">menu</span>
+        </button>
+      </div>
+      <div class="navbar-mobile" id="mobile-nav" data-nav-mobile></div>
+    </nav>
+  </template>
+
+  <template id="template-student-dashboard">
+    <div class="dashboard-layout">
+      <div data-navbar-placeholder></div>
+      <main class="dashboard-main">
+        <div class="dashboard-container">
+          <div class="dashboard-content">
+            <div class="dashboard-header">
+              <h1 data-dashboard-title>Welcome back, Student!</h1>
+              <p>Here's an overview of your campus activities</p>
+            </div>
+            
+            <div class="stats-section" id="student-stats"></div>
+            
+            <div class="quick-actions">
+              <h2>Quick Actions</h2>
+              <div class="action-cards">
+                <div class="action-card" onclick="navigate('student-complaints')">
+                  <div class="action-icon"><span class="material-icons-round">add_circle</span></div>
+                  <div class="action-content">
+                    <h3>Submit Complaint</h3>
+                    <p>Report an issue or concern</p>
+                  </div>
+                  <span class="action-arrow"><span class="material-icons-round">chevron_right</span></span>
+                </div>
+                <div class="action-card" onclick="navigate('student-events')">
+                  <div class="action-icon"><span class="material-icons-round">event</span></div>
+                  <div class="action-content">
+                    <h3>Browse Events</h3>
+                    <p>Discover and register for events</p>
+                  </div>
+                  <span class="action-arrow"><span class="material-icons-round">chevron_right</span></span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="events-section">
+              <div class="section-header">
+                <h2 class="section-title">Upcoming Events</h2>
+                <button class="btn btn-ghost btn-sm" onclick="navigate('student-events')">View All</button>
+              </div>
+              <div class="events-grid" id="upcoming-events"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </template>
+
+  <template id="template-student-complaints">
+    <div class="dashboard-layout">
+      <div data-navbar-placeholder></div>
+      <main class="dashboard-main">
+        <div class="dashboard-container">
+          <div class="page-content">
+            <div class="page-header">
+              <div>
+                <h1>My Complaints</h1>
+                <p>Submit and track your complaints</p>
+              </div>
+              <button class="btn btn-primary" onclick="openComplaintModal()">
+                <span class="material-icons-round">add</span> New Complaint
+              </button>
+            </div>
+            
+            <div class="filters-section">
+              <div class="filter-group">
+                <label>Category:</label>
+                <select class="filter-select" id="category-filter" onchange="filterComplaints()">
+                  <option value="all">All Categories</option>
+                  <option value="Facilities">Facilities</option>
+                  <option value="IT">IT</option>
+                  <option value="Food">Food</option>
+                  <option value="Academic">Academic</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Status:</label>
+                <select class="filter-select" id="status-filter" onchange="filterComplaints()">
+                  <option value="all">All Status</option>
+                  <option value="Pending">Pending</option>
+                  <option value="In-progress">In-progress</option>
+                  <option value="Resolved">Resolved</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="complaints-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <div id="complaint-modal" class="modal-overlay hidden" onclick="closeModal(event, 'complaint-modal')">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Submit New Complaint</h2>
+          <p>Describe your issue in detail</p>
+        </div>
+        <form class="modal-body" onsubmit="handleSubmitComplaint(event)">
+          <div class="modal-form">
+            <div class="form-group">
+              <label for="complaint-title">Title</label>
+              <input type="text" id="complaint-title" placeholder="Brief description of the issue" required>
+            </div>
+            <div class="form-group">
+              <label for="complaint-category">Category</label>
+              <select id="complaint-category" required>
+                <option value="">Select category</option>
+                <option value="Facilities">Facilities</option>
+                <option value="IT">IT</option>
+                <option value="Food">Food</option>
+                <option value="Academic">Academic</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="complaint-description">Description</label>
+              <textarea id="complaint-description" rows="4" placeholder="Provide detailed information about your complaint" required></textarea>
+            </div>
+            <div class="form-group">
+              <label for="complaint-file">Attachment (Optional)</label>
+              <input type="file" id="complaint-file" accept="image/*">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeComplaintModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Submit Complaint</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </template>
+
+  <template id="template-student-events">
+    <div class="dashboard-layout">
+      <div data-navbar-placeholder></div>
+      <main class="dashboard-main">
+        <div class="dashboard-container">
+          <div class="page-content">
+            <div class="page-header">
+              <div>
+                <h1>Campus Events</h1>
+                <p>Discover and register for upcoming events</p>
+              </div>
+            </div>
+            
+            <div class="search-section">
+              <div class="search-input-wrapper">
+                <span class="search-icon"><span class="material-icons-round">search</span></span>
+                <input type="text" class="search-input" id="event-search" placeholder="Search events..." oninput="filterEvents()">
+              </div>
+            </div>
+            
+            <div class="events-grid" id="events-list"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </template>
+
+  <template id="template-staff-dashboard">
+    <div class="dashboard-layout">
+      <div data-navbar-placeholder></div>
+      <main class="dashboard-main">
+        <div class="dashboard-container">
+          <div class="dashboard-content">
+            <div class="dashboard-header">
+              <h1>Staff Dashboard</h1>
+              <p>Manage complaints and events</p>
+            </div>
+            
+            <div class="stats-section staff-stats" id="staff-stats"></div>
+            
+            <div class="quick-actions">
+              <h2>Quick Actions</h2>
+              <div class="action-cards">
+                <div class="action-card action-card-staff" onclick="navigate('staff-complaints')">
+                  <div class="action-icon"><span class="material-icons-round">assignment</span></div>
+                  <div class="action-content">
+                    <h3>Manage Complaints</h3>
+                    <p>Review and update complaint status</p>
+                  </div>
+                  <span class="action-arrow"><span class="material-icons-round">chevron_right</span></span>
+                </div>
+                <div class="action-card action-card-staff" onclick="navigate('staff-events')">
+                  <div class="action-icon"><span class="material-icons-round">event</span></div>
+                  <div class="action-content">
+                    <h3>Event Management</h3>
+                    <p>Create and manage campus events</p>
+                  </div>
+                  <span class="action-arrow"><span class="material-icons-round">chevron_right</span></span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="analytics-section">
+              <h2 class="section-title">Analytics Overview</h2>
+              <div class="analytics-grid">
+                <div class="analytics-card">
+                  <div class="analytics-header">
+                    <span class="material-icons-round">trending_up</span> Complaint Resolution Rate
+                  </div>
+                  <div class="analytics-chart">
+                    <div class="progress-bar">
+                      <div class="progress-fill" data-resolution-progress></div>
+                    </div>
+                    <div class="progress-label" data-resolution-label></div>
+                  </div>
+                </div>
+                <div class="analytics-card">
+                  <div class="analytics-header">
+                    <span class="material-icons-round">event</span> Event Statistics
+                  </div>
+                  <div class="analytics-stats">
+                    <div class="analytics-stat">
+                      <span class="stat-value" data-total-events></span>
+                      <span class="stat-label">Total Events</span>
+                    </div>
+                    <div class="analytics-stat">
+                      <span class="stat-value" data-upcoming-events></span>
+                      <span class="stat-label">Upcoming</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </template>
+
+  <template id="template-staff-complaints">
+    <div class="dashboard-layout">
+      <div data-navbar-placeholder></div>
+      <main class="dashboard-main">
+        <div class="dashboard-container">
+          <div class="page-content">
+            <div class="page-header">
+              <div>
+                <h1>Complaints Management</h1>
+                <p>Review and manage all student complaints</p>
+              </div>
+            </div>
+            
+            <div class="search-section">
+              <div class="search-input-wrapper">
+                <span class="search-icon"><span class="material-icons-round">search</span></span>
+                <input type="text" class="search-input" id="complaint-search" placeholder="Search complaints..." oninput="filterStaffComplaints()">
+              </div>
+            </div>
+            
+            <div class="filters-section">
+              <div class="filter-group">
+                <label>Category:</label>
+                <select class="filter-select" id="staff-category-filter" onchange="filterStaffComplaints()">
+                  <option value="all">All Categories</option>
+                  <option value="Facilities">Facilities</option>
+                  <option value="IT">IT</option>
+                  <option value="Food">Food</option>
+                  <option value="Academic">Academic</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Status:</label>
+                <select class="filter-select" id="staff-status-filter" onchange="filterStaffComplaints()">
+                  <option value="all">All Status</option>
+                  <option value="Pending">Pending</option>
+                  <option value="In-progress">In-progress</option>
+                  <option value="Resolved">Resolved</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Student</th>
+                    <th>Category</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="staff-complaints-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <div id="details-modal" class="modal-overlay hidden" onclick="closeModal(event, 'details-modal')">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Complaint Details</h2>
+        </div>
+        <div class="modal-body" id="complaint-details"></div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeDetailsModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="template-staff-events">
+    <div class="dashboard-layout">
+      <div data-navbar-placeholder></div>
+      <main class="dashboard-main">
+        <div class="dashboard-container">
+          <div class="page-content">
+            <div class="page-header">
+              <div>
+                <h1>Event Management</h1>
+                <p>Create and manage campus events</p>
+              </div>
+              <button class="btn btn-staff" onclick="openEventModal()">
+                <span class="material-icons-round">add</span> Create Event
+              </button>
+            </div>
+            
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Event Image</th>
+                    <th>Event Title</th>
+                    <th>Date</th>
+                    <th>Registrations</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="staff-events-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <div id="event-modal" class="modal-overlay hidden" onclick="closeModal(event, 'event-modal')">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Create New Event</h2>
+          <p>Fill in the event details</p>
+        </div>
+        <form class="modal-body" onsubmit="handleCreateEvent(event)">
+          <div class="modal-form">
+            <div class="form-group">
+              <label for="event-title">Event Title</label>
+              <input type="text" id="event-title" placeholder="Enter event title" required>
+            </div>
+            <div class="form-group">
+              <label for="event-date">Date</label>
+              <input type="date" id="event-date" required>
+            </div>
+            <div class="form-group">
+              <label for="event-description">Description</label>
+              <textarea id="event-description" rows="4" placeholder="Describe the event" required></textarea>
+            </div>
+            <div class="form-group">
+              <label for="event-image">Image (Optional)</label>
+              <input type="file" id="event-image" accept="image/*">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeEventModal()">Cancel</button>
+            <button type="submit" class="btn btn-staff">Create Event</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </template>
+
+  <template id="template-not-found">
+    <div class="landing-page" style="justify-content: center;">
+      <div style="text-align: center;">
+        <h1 style="font-size: 4rem; font-weight: bold; margin-bottom: 1rem;">404</h1>
+        <p style="font-size: 1.25rem; color: var(--muted-foreground); margin-bottom: 1rem;">Oops! Page not found</p>
+        <a href="#" onclick="navigate('landing'); return false;" style="color: var(--primary); text-decoration: underline;">Return to Home</a>
+      </div>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
