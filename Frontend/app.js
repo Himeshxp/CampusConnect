@@ -95,9 +95,9 @@ async function getEvents() {
   //   - Each object in the returned array below will become a card shown to the user.
   return [
     { id: 1, title: 'Tech Symposium 2025', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-02-15', description: 'Annual technology conference featuring industry speakers.', registered: false, registrations: 45 },
-    { id: 2, title: 'Cultural Fest', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-02-20', description: 'Celebrate diversity with performances and food from around the world.', registered: true, registrations: 120 },
+    { id: 2, title: 'Cultural Fest', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-02-20', description: 'Celebrate diversity with performances and food from around the world.', registered: false, registrations: 120 },
     { id: 3, title: 'Career Fair', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-03-01', description: 'Meet top employers and explore internship opportunities.', registered: false, registrations: 200 },
-    { id: 4, title: 'Sports Day', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-03-10', description: 'Inter-department sports competition.', registered: true, registrations: 80 },
+    { id: 4, title: 'Sports Day', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-03-10', description: 'Inter-department sports competition.', registered: false, registrations: 80 },
   ];
   // return fetch(`${API_BASE}/events`).then(res => res.json());
 }
@@ -107,6 +107,15 @@ async function registerForEvent(eventId) {
   console.log('Register for event:', eventId);
   return { success: true };
   // return fetch(`${API_BASE}/events/${eventId}/register`, {
+  //   method: 'POST'
+  // }).then(res => res.json());
+}
+
+async function unregisterForEvent(eventId) {
+  // TODO: Replace with actual API endpoint
+  console.log('Unregister for event:', eventId);
+  return { success: true };
+  // return fetch(`${API_BASE}/events/${eventId}/unregister`, {
   //   method: 'POST'
   // }).then(res => res.json());
 }
@@ -594,14 +603,29 @@ async function handleCreateEvent(e) {
 }
 
 async function handleRegisterEvent(eventId) {
-  const result = await registerForEvent(eventId);
-  if (result.success) {
-    const event = eventsData.find(e => e.id === eventId);
-    if (event) {
+  const event = eventsData.find(e => e.id === eventId);
+  if (!event) return;
+  
+  if (event.registered) {
+    // Unregister
+    const result = await unregisterForEvent(eventId);
+    if (result.success) {
+      event.registered = false;
+      if (event.registrations > 0) {
+        event.registrations--;
+      }
+      renderEventsList();
+      renderUpcomingEvents();
+    }
+  } else {
+    // Register
+    const result = await registerForEvent(eventId);
+    if (result.success) {
       event.registered = true;
       event.registrations++;
+      renderEventsList();
+      renderUpcomingEvents();
     }
-    renderEventsList();
   }
 }
 
@@ -693,6 +717,8 @@ function renderEventsList() {
   
   container.innerHTML = filtered.map(event => `
     <div class="event-card">
+    <img class="event-card-image" src="${event.imgsrc}" alt="event-image" width="100%"/>
+    <hr style="margin-bottom: 1em;">
       <div class="event-card-header">
         <h3 class="event-card-title">${event.title}</h3>
         ${event.registered ? '<span class="status-badge badge-registered">Registered</span>' : ''}
@@ -706,8 +732,8 @@ function renderEventsList() {
           ${icon('people')} ${event.registrations} registered
         </div>
         ${event.registered 
-          ? '<span style="font-size: 0.875rem; color: var(--success);">✓ You\'re in!</span>' 
-          : `<button class="btn btn-primary btn-sm" onclick="handleRegisterEvent(${event.id})">Register</button>`
+          ? `<button class="btn btn-primary btn-sm unregister-btn" onclick="handleRegisterEvent(${event.id})">Unregister</button>` 
+          : `<button class="btn btn-primary btn-sm register-btn" onclick="handleRegisterEvent(${event.id})">Register</button>`
         }
       </div>
     </div>
@@ -719,7 +745,7 @@ function renderUpcomingEvents() {
   const container = document.getElementById('upcoming-events');
   if (!container) return;
   
-  const upcoming = eventsData.slice(0, 3);
+  const upcoming = eventsData.slice(0, 2);
   
   if (upcoming.length === 0) {
     container.innerHTML = '<div class="empty-state">No upcoming events</div>';
@@ -730,7 +756,11 @@ function renderUpcomingEvents() {
   container.innerHTML = upcoming.map(event => `
     <div class="event-card">
     <img class="event-card-image" src="${event.imgsrc}" width="100%" height="auto"/>
-    <h3 class="event-card-title">${event.title}</h3>
+    <hr style="margin-bottom: 1em;">
+      <div class="event-card-header">
+        <h3 class="event-card-title">${event.title}</h3>
+        ${event.registered ? '<span class="status-badge badge-registered">Registered</span>' : ''}
+      </div>
       <div class="event-card-date">
         ${icon('calendar_today')} ${event.date}
       </div>
@@ -740,8 +770,8 @@ function renderUpcomingEvents() {
           ${icon('people')} ${event.registrations} registered
         </div>
         ${event.registered 
-          ? '<span class="status-badge badge-registered">Registered</span>' 
-          : `<button class="btn btn-primary btn-sm" onclick="handleRegisterEvent(${event.id})">Register</button>`
+          ? `<button class="btn btn-primary btn-sm unregister-btn" onclick="handleRegisterEvent(${event.id})">Unregister</button>`
+          : `<button class="btn btn-primary btn-sm register-btn" onclick="handleRegisterEvent(${event.id})">Register</button>`
         }
       </div>
     </div>

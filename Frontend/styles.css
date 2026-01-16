@@ -37,7 +37,10 @@
   --ring: hsl(217, 91%, 60%);                 /* Focus/input ring color */
 
   /* ==== General Layout ==== */
-  --radius: 0.75rem;                          /* General border radius */
+  --full-round: 1000px;                          /* Full Rounded border radius */
+  --l-round: 40px;                            /* Highly Rounded border radius */
+  --m-round: 25px;                            /* Medium Rounded border radius */
+  --s-round: 10px;                            /* Small Rounded border radius */
 
   /* ==== Status/Feedback ==== */
   --success: hsl(142, 76%, 36%);              /* Success state color (used for badges, etc.) */
@@ -130,6 +133,7 @@ body, .landing-page, .login-card, .role-card, .navbar, .data-table, .modal-conte
   font-style: normal;
   font-weight: normal;
   font-size: 24px;
+  aspect-ratio: 1;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -538,13 +542,19 @@ input[type="file"],
 select,
 textarea {
   width: 100%;
-  padding: 0.625rem 0.75rem;
+  padding: 0.85em;
   border: 1px solid var(--input);
-  border-radius: var(--radius);
+  border-radius: var(--full-round);
   background: var(--background);
   font-size: 0.875rem;
   color: var(--foreground);
   transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+textarea {
+  width: 100%;
+  border-radius: var(--m-round);
+  resize: vertical;
 }
 
 input:focus,
@@ -567,7 +577,7 @@ textarea::placeholder {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  border-radius: var(--radius);
+  border-radius: var(--full-round);
   font-size: 0.875rem;
   font-weight: 500;
   transition: background-color var(--transition-fast) var(--easing-quick), color var(--transition-fast) var(--easing-quick), transform var(--transition-fast) var(--easing-quick), box-shadow var(--transition-fast) var(--easing-quick);
@@ -754,7 +764,7 @@ textarea::placeholder {
 .navbar-mobile-toggle {
   display: block;
   padding: 0.5rem;
-  border-radius: 0.5rem;
+  border-radius: var(--full-round);
   color: var(--foreground);
 }
 
@@ -844,7 +854,7 @@ textarea::placeholder {
 }
 
 .stat-card-default .stat-card-icon {
-  background: #0000ff10;
+  background: #4d4dff30;
   color: var(--primary);
 }
 
@@ -945,9 +955,12 @@ textarea::placeholder {
 }
 
 .action-arrow {
-  width: 1.25rem;
-  height: 1.25rem;
   color: var(--muted-foreground);
+}
+
+.action-arrow:hover {
+  background: var(--muted);
+  border-radius: var(--full-round);
 }
 
 /* ========== Events ========== */
@@ -967,6 +980,15 @@ textarea::placeholder {
 
 .event-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.event-card-image {
+  display: block;
+  aspect-ratio: auto;
+  object-fit: contain;
+  background-position: center;
+  margin: 0.25em 0 1em 0;
+  border-radius: var(--s-round);
 }
 
 .event-card-header {
@@ -1016,6 +1038,23 @@ textarea::placeholder {
   color: var(--muted-foreground);
 }
 
+.register-btn {
+  background-color: rgba(0, 0, 255, 0.6);
+  border: 3px solid #0000ff80;
+  box-shadow: inset 2px 2px 2px 2px #fff2;
+}
+
+.unregister-btn {
+  background-color: rgba(255, 0, 0, 0.6);
+  border: 2px solid #ff000050;
+  box-shadow: inset 0px 2px 2px 2px #fff3;
+}
+
+.unregister-btn:hover {
+  background-color: #ff0000ca;
+  border-color: red;
+}
+
 /* ========== Page Content ========== */
 .page-content {
   display: flex;
@@ -1063,23 +1102,31 @@ textarea::placeholder {
 }
 
 .search-input-wrapper {
+  display: flex;
+  align-items: center;
   position: relative;
   max-width: 20rem;
 }
 
 .search-icon {
+  display: grid;
+  place-items: center;
+  
   position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1.25rem;
-  height: 1.25rem;
+  padding: 0.25em;
+  width: 2.25rem;
+  height: 2.25rem;
+  aspect-ratio: 1;
   color: var(--muted-foreground);
+  background: var(--muted);
+  border-radius: var(--full-round);
+  margin: 0.1em;
   font-size: 1.25rem;
 }
 
 .search-input {
-  padding-left: 2.5rem;
+   padding: 1em;
+   padding-left: 3.25em !important;
 }
 
 /* ========== Tables ========== */

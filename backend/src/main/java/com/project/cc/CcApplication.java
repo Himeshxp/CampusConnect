@@ -8,6 +8,7 @@ public class CcApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(CcApplication.class, args);
+		System.out.println("Student application started");
 	}
 
 }
