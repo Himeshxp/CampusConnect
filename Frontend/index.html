@@ -15,10 +15,13 @@
   <!-- Templates -->
   <template id="template-landing">
     <div class="landing-page">
+      <button class="theme-toggle theme-toggle-left" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
+        <span class="material-icons-round">light_mode</span>
+      </button>
       <header class="landing-header">
         <div class="landing-logo">
           <div class="logo-img">
-            <img src="/Campus.png" alt="Logo Image" width="100" height="auto">
+            <img src="Campus.png" alt="Logo Image" width="100" height="auto">
           </div>
           <span class="logo-text">Campus Connect Portal</span>
         </div>
@@ -67,6 +70,9 @@
 
   <template id="template-student-login">
     <div class="login-page">
+      <button class="theme-toggle theme-toggle-left" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
+        <span class="material-icons-round">light_mode</span>
+      </button>
       <div class="login-container">
         <a href="#" class="login-back" onclick="navigate('landing'); return false;">
           <span class="material-icons-round">arrow_back</span> Back to Home
@@ -101,6 +107,9 @@
 
   <template id="template-staff-login">
     <div class="login-page login-page-staff">
+      <button class="theme-toggle theme-toggle-left" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
+        <span class="material-icons-round">light_mode</span>
+      </button>
       <div class="login-container">
         <a href="#" class="login-back" onclick="navigate('landing'); return false;">
           <span class="material-icons-round">arrow_back</span> Back to Home
@@ -143,6 +152,9 @@
         <div class="navbar-links" data-nav-links></div>
         <div class="navbar-actions">
           <span class="navbar-user" data-nav-user></span>
+          <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
+            <span class="material-icons-round">light_mode</span>
+          </button>
           <button class="navbar-logout" onclick="handleLogout()">
             <span class="material-icons-round">logout</span>
           </button>

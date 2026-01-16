@@ -168,6 +168,40 @@ let complaintsData = [];
 let eventsData = []; // Events card data is stored here after getEvents() is called.
 let statsData = {};
 
+// ========== Theme Management ==========
+// Tracks current theme ('light' | 'dark'). Defaults to saved value or system preference.
+let currentTheme = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+function applyTheme(theme) {
+  currentTheme = theme === 'dark' ? 'dark' : 'light';
+  try {
+    document.documentElement.setAttribute('data-theme', currentTheme === 'dark' ? 'dark' : 'light');
+  } catch (e) {
+    console.warn('Could not apply theme attribute', e);
+  }
+  try {
+    localStorage.setItem('theme', currentTheme);
+  } catch (e) {
+    /* ignore */
+  }
+  // Update any theme icons that exist in the DOM (navbars, etc.)
+  const icons = document.querySelectorAll('.theme-toggle .material-icons-round');
+  icons.forEach(i => i.textContent = currentTheme === 'dark' ? 'dark_mode' : 'light_mode');
+}
+
+function toggleTheme() {
+  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+}
+
+function initTheme() {
+  applyTheme(currentTheme);
+}
+
+// Initialize theme on load
+initTheme();
+// Ensure theme icons/text are correct once DOM is ready (covers inline template buttons)
+document.addEventListener('DOMContentLoaded', () => applyTheme(currentTheme));
+
 // ========== Routing ==========
 function navigate(page) {
   currentPage = page;
@@ -241,6 +275,9 @@ function renderNavbar(role, activePage) {
   
   brand.setAttribute('onclick', `navigate('${isStudent ? 'student-dashboard' : 'staff-dashboard'}'); return false;`);
   userSpan.textContent = currentUser?.name || 'User';
+  // Ensure the theme icon in this cloned navbar reflects current theme
+  const themeIconEl = nav.querySelector('.theme-toggle .material-icons-round');
+  if (themeIconEl) themeIconEl.textContent = currentTheme === 'dark' ? 'dark_mode' : 'light_mode';
   
   links.forEach(link => {
     const linkEl = document.createElement('a');
