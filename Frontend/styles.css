@@ -10,6 +10,7 @@
 
   /* ==== Card Styles ==== */
   --card: hsl(0, 0%, 100%);                   /* Card background */
+  --card-rgb: 255, 255, 255;                  /* Card background as RGB for translucent UI (r, g, b) */
   --card-foreground: hsl(222, 47%, 11%);      /* Card text color */
 
   /* ==== Primary Colors ==== */
@@ -49,6 +50,76 @@
   --student-primary-light: hsl(217, 91%, 95%);/* Background tint for Student */
   --staff-primary: hsl(262, 83%, 58%);        /* Primary color for Staff role */
   --staff-primary-light: hsl(262, 83%, 95%);  /* Background tint for Staff */
+}
+
+/* Dark theme overrides (applied by setting data-theme="dark" on <html> or <body>) */
+[data-theme="dark"] {
+  /* Dark theme: tuned for improved contrast */
+  --background: hsl(220, 15%, 6%);
+  --foreground: hsl(210, 18%, 96%);
+
+  --card: hsl(220, 15%, 8%);
+  --card-rgb: 18, 20, 24;
+  --card-foreground: hsl(210, 18%, 96%);
+
+  --primary: hsl(217, 91%, 65%);
+  --primary-foreground: hsl(0, 0%, 100%);
+
+  --secondary: hsl(220, 14%, 10%);
+  --secondary-foreground: hsl(210, 18%, 94%);
+
+  --muted: hsl(220, 14%, 14%);
+  --muted-foreground: hsl(210, 16%, 72%);
+  --accent: hsl(220, 14%, 10%);
+  --accent-foreground: hsl(210, 18%, 96%);
+
+  --destructive: hsl(0, 74%, 60%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+
+  --border: hsl(220, 12%, 22%);
+  --input: hsl(220, 12%, 18%);
+  --ring: hsl(217, 91%, 60%);
+
+  --student-primary-light: hsl(217, 91%, 10%);
+  --staff-primary-light: hsl(262, 83%, 10%);
+}
+
+/* Smooth transitions when toggling theme */
+:root, [data-theme="dark"] {
+  --transition-fast: 180ms;
+  --transition-slow: 320ms;
+  --easing-quick: cubic-bezier(.2,.9,.2,1);
+}
+
+body, .landing-page, .login-card, .role-card, .navbar, .data-table, .modal-content {
+  transition: background-color var(--transition-fast) var(--easing-quick), color var(--transition-fast) var(--easing-quick), border-color var(--transition-fast) var(--easing-quick);
+}
+
+/* Reduce motion for users who request it */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* Theme toggle button styling */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  border: 1px solid transparent;
+}
+
+.theme-toggle:hover {
+  background: var(--secondary);
+  color: var(--foreground);
+}
+
+.theme-toggle .material-icons-round {
+  font-size: 20px;
 }
 
 /* =======================
@@ -101,6 +172,7 @@ button {
 input, select, textarea {
   font-family: inherit;
   font-size: 0.875rem;
+  transition: border-color var(--transition-fast) var(--easing-quick), box-shadow var(--transition-fast) var(--easing-quick), background-color var(--transition-fast) var(--easing-quick), color var(--transition-fast) var(--easing-quick);
 }
 
 .hidden { display: none !important; }
@@ -171,6 +243,21 @@ input, select, textarea {
 
 .hero-highlight {
   color: var(--primary);
+}
+.hero-highlight {
+  display: inline-block;
+  transition: transform var(--transition-fast) var(--easing-quick),
+              color var(--transition-fast) var(--easing-quick),
+              letter-spacing var(--transition-fast) var(--easing-quick),
+              text-shadow var(--transition-fast) var(--easing-quick);
+  will-change: transform, color, letter-spacing, text-shadow;
+}
+
+.hero-highlight:hover {
+  transform: translateY(-2px) scale(1.03);
+  color: var(--primary);
+  letter-spacing: 0.02em;
+  text-shadow: 0 6px 18px rgba(59, 130, 246, 0.12);
 }
 
 .hero-description {
@@ -313,6 +400,7 @@ input, select, textarea {
   justify-content: center;
   padding: 1rem;
   background: linear-gradient(to bottom right, var(--student-primary-light), var(--background));
+  position: relative; /* contain left-positioned theme toggle */
 }
 
 .login-page-staff {
@@ -322,6 +410,24 @@ input, select, textarea {
 .login-container {
   width: 100%;
   max-width: 28rem;
+}
+
+/* Left-positioned theme toggle for login pages (consistent position) */
+.theme-toggle-left {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 60;
+  padding: 0.45rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  border: 1px solid transparent;
+}
+
+.theme-toggle-left:hover {
+  background: var(--secondary);
+  color: var(--foreground);
 }
 
 .login-back {
@@ -464,7 +570,7 @@ textarea::placeholder {
   border-radius: var(--radius);
   font-size: 0.875rem;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: background-color var(--transition-fast) var(--easing-quick), color var(--transition-fast) var(--easing-quick), transform var(--transition-fast) var(--easing-quick), box-shadow var(--transition-fast) var(--easing-quick);
 }
 
 .btn-primary {
@@ -553,7 +659,8 @@ textarea::placeholder {
   top: 0;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.95);
+  /* Semi-translucent navbar using RGB token for smoother alpha control */
+  background: rgba(var(--card-rgb), 0.88);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
   z-index: 50;
