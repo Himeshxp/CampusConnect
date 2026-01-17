@@ -171,6 +171,7 @@
     <div class="dashboard-layout">
       <div data-navbar-placeholder></div>
       <main class="dashboard-main">
+
         <div class="dashboard-container">
           <div class="dashboard-content">
             <div class="dashboard-header">
@@ -564,6 +565,56 @@
         <p style="font-size: 1.25rem; color: var(--muted-foreground); margin-bottom: 1rem;">Oops! Page not found</p>
         <a href="#" onclick="navigate('landing'); return false;" style="color: var(--primary); text-decoration: underline;">Return to Home</a>
       </div>
+    </div>
+  </template>
+
+  <!-- Event Edit Page (separate page for editing a single event) -->
+  <template id="template-event-edit">
+    <div class="dashboard-layout">
+      <div data-navbar-placeholder></div>
+      <main class="dashboard-main">
+        <div class="dashboard-container">
+          <div class="page-content">
+            <div class="page-header">
+              <div>
+                <h1>Edit Event</h1>
+                <p>Update event details and save changes</p>
+              </div>
+            </div>
+
+            <form id="event-edit-form" class="event-edit-form" onsubmit="handleSaveEditedEvent(event)">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="event-edit-title">Event Title</label>
+                  <input type="text" id="event-edit-title" required />
+                </div>
+                <div class="form-group">
+                  <label for="event-edit-date">Date</label>
+                  <input type="date" id="event-edit-date" required />
+                </div>
+                <div class="form-group full-width">
+                  <label for="event-edit-description">Description</label>
+                  <textarea id="event-edit-description" rows="5" required></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="event-edit-image">Image URL</label>
+                  <input type="url" id="event-edit-image" placeholder="https://..." />
+                </div>
+                <div class="form-group">
+                  <label for="event-edit-registrations">Registrations</label>
+                  <input type="number" id="event-edit-registrations" min="0" step="1" />
+                </div>
+              </div>
+
+              <div class="form-actions" style="margin-top:1rem; gap:0.5rem; display:flex;">
+                <button type="button" class="btn btn-outline" onclick="navigate('staff-events')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      </main>
     </div>
   </template>
 
