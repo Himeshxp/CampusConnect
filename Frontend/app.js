@@ -87,18 +87,31 @@ async function updateComplaintStatus(id, status) {
 
 // Events APIs
 async function getEvents() {
-  // TODO: Replace with actual API endpoint in a real app.
-  // This placeholder just returns some event objects for demo/testing.
-  // The mapping between these objects and the UI cards displayed to the user is as follows:
-  //   - When you open "Events" (for student or staff), getEvents() is called and result is put in eventsData.
-  //   - renderEventsList(), renderUpcomingEvents(), or renderStaffEventsTable() use eventsData to loop and show cards/tables.
-  //   - Each object in the returned array below will become a card shown to the user.
-  return [
+  // If an events list has been persisted in localStorage (edits from staff), return that first.
+  try {
+    const stored = localStorage.getItem('eventsData');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.warn('Could not parse events from localStorage', e);
+  }
+
+  // Defaults used on first load. We also persist them to localStorage so edits will survive page navigation.
+  const defaults = [
     { id: 1, title: 'Tech Symposium 2025', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-02-15', description: 'Annual technology conference featuring industry speakers.', registered: false, registrations: 45 },
     { id: 2, title: 'Cultural Fest', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-02-20', description: 'Celebrate diversity with performances and food from around the world.', registered: false, registrations: 120 },
     { id: 3, title: 'Career Fair', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-03-01', description: 'Meet top employers and explore internship opportunities.', registered: false, registrations: 200 },
     { id: 4, title: 'Sports Day', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-03-10', description: 'Inter-department sports competition.', registered: false, registrations: 80 },
   ];
+
+  try {
+    localStorage.setItem('eventsData', JSON.stringify(defaults));
+  } catch (e) {
+    /* ignore */
+  }
+
+  return defaults;
   // return fetch(`${API_BASE}/events`).then(res => res.json());
 }
 
@@ -176,6 +189,8 @@ let currentPage = 'landing';
 let complaintsData = [];
 let eventsData = []; // Events card data is stored here after getEvents() is called.
 let statsData = {};
+// selectedEventId stores the id of the event being edited in the "event-edit" page
+let selectedEventId = null;
 
 // ========== Theme Management ==========
 // Tracks current theme ('light' | 'dark'). Defaults to saved value or system preference.
@@ -213,19 +228,32 @@ document.addEventListener('DOMContentLoaded', () => applyTheme(currentTheme));
 
 // ========== Routing ==========
 function navigate(page) {
-  currentPage = page;
+  // page may include query params (e.g. 'event-edit?id=1').
+  // Store fullPage in history state but set currentPage to the base page (before '?') so render() matches cases.
+  const base = String(page).split('?')[0];
+  currentPage = base || 'landing';
   render();
-  window.history.pushState({ page }, '', `#${page}`);
+  window.history.pushState({ fullPage: page }, '', `#${page}`);
 }
 
 window.addEventListener('popstate', (e) => {
-  currentPage = e.state?.page || getPageFromHash();
+  // When navigating via browser controls, prefer the fullPage in state if available,
+  // but always set currentPage to the base page name (before any '?').
+  const statePage = e.state?.fullPage || e.state?.page;
+  if (statePage) {
+    currentPage = String(statePage).split('?')[0] || getPageFromHash();
+  } else {
+    currentPage = getPageFromHash();
+  }
   render();
 });
 
 function getPageFromHash() {
   const hash = window.location.hash.slice(1);
-  return hash || 'landing';
+  if (!hash) return 'landing';
+  // Support optional query string like 'event-edit?id=3' — return only the page part before '?'
+  const page = hash.split('?')[0];
+  return page || 'landing';
 }
 
 // ========== Icon Helper ==========
@@ -592,10 +620,14 @@ async function handleCreateEvent(e) {
   if (result.success) {
     eventsData.push({
       id: result.id,
-      ...data,
+      title: data.title,
+      date: data.date,
+      description: data.description,
+      imgsrc: '', // file uploads not implemented in this demo; leave blank or add URL
       registered: false,
       registrations: 0,
     });
+    try { localStorage.setItem('eventsData', JSON.stringify(eventsData)); } catch (e) { /* ignore */ }
     closeEventModal();
     renderStaffEventsTable();
     alert('Event created successfully!');
@@ -643,6 +675,7 @@ async function handleDeleteEvent(eventId) {
     const result = await deleteEvent(eventId);
     if (result.success) {
       eventsData = eventsData.filter(e => e.id !== eventId);
+      try { localStorage.setItem('eventsData', JSON.stringify(eventsData)); } catch (e) { /* ignore */ }
       renderStaffEventsTable();
     }
   }
@@ -862,6 +895,101 @@ function updateEventModal() {
 
 }
 
+// Called when user clicks the edit button in the staff events table.
+// This sets the selected event id and navigates to the dedicated edit page.
+function updateEventModel(eventId) {
+  selectedEventId = eventId;
+  // Navigate including the id so the URL can be deep-linked and reloads keep the selected id
+  navigate(`event-edit?id=${eventId}`);
+}
+
+// Render the event edit page template and populate fields from eventsData.
+function renderEventEdit() {
+  const clone = cloneTemplate('event-edit');
+  if (!clone) return document.createDocumentFragment();
+
+  const navbarPlaceholder = clone.querySelector('[data-navbar-placeholder]');
+  const navbar = renderNavbar('staff', '');
+  if (navbarPlaceholder && navbar) {
+    const navElement = navbar.querySelector('nav');
+    if (navElement) navbarPlaceholder.replaceWith(navElement);
+  }
+
+  // Populate form fields directly on the cloned fragment to avoid timing/attachment issues.
+  const event = eventsData.find(e => e.id === selectedEventId) || {};
+  try {
+    const titleEl = clone.querySelector('#event-edit-title');
+    const dateEl = clone.querySelector('#event-edit-date');
+    const descEl = clone.querySelector('#event-edit-description');
+    const imgEl = clone.querySelector('#event-edit-image');
+    const regEl = clone.querySelector('#event-edit-registrations');
+
+    if (titleEl) titleEl.value = event.title || '';
+    if (dateEl) dateEl.value = event.date || '';
+    if (descEl) descEl.value = event.description || '';
+    if (imgEl) imgEl.value = event.imgsrc || '';
+    if (regEl) regEl.value = event.registrations || 0;
+  } catch (err) {
+    console.warn('Could not populate event edit fields on clone', err);
+  }
+
+  return clone;
+}
+
+// Handle saving edits from the edit page form.
+async function handleSaveEditedEvent(e) {
+  e.preventDefault();
+  if (selectedEventId == null) {
+    alert('No event selected to edit');
+    return;
+  }
+
+  const title = document.getElementById('event-edit-title').value.trim();
+  const date = document.getElementById('event-edit-date').value;
+  const description = document.getElementById('event-edit-description').value.trim();
+  const imgsrc = document.getElementById('event-edit-image').value.trim();
+  const registrationsInput = document.getElementById('event-edit-registrations')?.value;
+  // Parse registrations as integer, default to 0 and ensure non-negative
+  let registrations = 0;
+  if (registrationsInput !== undefined && registrationsInput !== null && String(registrationsInput).trim() !== '') {
+    registrations = parseInt(registrationsInput, 10);
+    if (Number.isNaN(registrations) || registrations < 0) registrations = 0;
+  }
+
+  // Update local in-memory event object (placeholder for real API update)
+  const ev = eventsData.find(ei => ei.id === selectedEventId);
+  if (!ev) {
+    alert('Event not found');
+    return;
+  }
+
+  ev.title = title;
+  ev.date = date;
+  ev.description = description;
+  ev.imgsrc = imgsrc;
+  ev.registrations = registrations;
+
+  // Placeholder API call - could be replaced with real updateEvent API
+  try {
+    // If an API existed, we'd call something like: await updateEventApi(selectedEventId, ev)
+  } catch (err) {
+    console.error('Failed to update event via API', err);
+  }
+
+  // Persist updated events list so the change survives navigation/reloads (until backend is wired)
+  try {
+    localStorage.setItem('eventsData', JSON.stringify(eventsData));
+  } catch (e) {
+    console.warn('Could not persist events to localStorage', e);
+  }
+
+  // After save, navigate back to staff events and refresh table
+  navigate('staff-events');
+  // ensure events are present and re-render the table
+  renderStaffEventsTable();
+  alert('Event updated successfully');
+}
+
 // ========== Main Render Function ==========
 // This function controls which page is visible and updates data accordingly.
 // For example, when the Events page is shown, it updates eventsData using getEvents(), which means all event cards on that page use the array getEvents() returns.
@@ -925,6 +1053,25 @@ async function render() {
       eventsData = await getEvents(); // <- Event cards on this page are rendered from this
       app.appendChild(renderStaffEvents());
       renderStaffEventsTable();
+      break;
+    case 'event-edit':
+      // Load fresh events data and render the dedicated edit page for the selected event.
+      // Support deep-linking: if the hash contains an id like '#event-edit?id=3', use that id.
+      eventsData = await getEvents();
+      // parse id param from hash if present
+      try {
+        const raw = window.location.hash.slice(1);
+        const qs = raw.split('?')[1] || '';
+        const params = new URLSearchParams(qs);
+        const id = params.get('id');
+        if (id) selectedEventId = Number(id);
+        // If still no selectedEventId, default to the first event so the page shows something
+        if (selectedEventId == null) selectedEventId = eventsData[0]?.id || null;
+      } catch (err) {
+        // fallback: ensure selectedEventId has a sensible value
+        if (selectedEventId == null) selectedEventId = eventsData[0]?.id || null;
+      }
+      app.appendChild(renderEventEdit());
       break;
     default:
       app.appendChild(renderNotFound());
