@@ -10,16 +10,22 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.Data;
 
+@Data
 @Entity
 public class Student {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private  int id;
+    private Integer id;
 
     private String firstName;
     private String lastName;
     private String email;
     private String password;
+    private String role="STUDENT";
+    public Student(String firstName, String lastName, String email, String password, String role) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
 
     public Student() {
     }
