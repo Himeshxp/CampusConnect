@@ -7,7 +7,6 @@
 // - The appropriate data rendering function (such as renderEventsList() or renderUpcomingEvents()) then uses eventsData to generate HTML for each card, mapping each event object to a block of HTML.
 // - These HTML blocks are inserted into containers in the DOM, such as those with id="events-list" or id="upcoming-events" (see renderEventsList and renderUpcomingEvents below).
 // See more inline explanations in the relevant functions below.
-
 const API_BASE = '/api';
 
 // Auth APIs
@@ -91,7 +90,7 @@ async function getEvents() {
   try {
     const stored = localStorage.getItem('eventsData');
     if (stored) {
-      return JSON.parse(stored);
+      // return JSON.parse(stored);
     }
   } catch (e) {
     console.warn('Could not parse events from localStorage', e);
@@ -99,10 +98,10 @@ async function getEvents() {
 
   // Defaults used on first load. We also persist them to localStorage so edits will survive page navigation.
   const defaults = [
-    { id: 1, title: 'Tech Symposium 2025', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-02-15', description: 'Annual technology conference featuring industry speakers.', registered: false, registrations: 45 },
-    { id: 2, title: 'Cultural Fest', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-02-20', description: 'Celebrate diversity with performances and food from around the world.', registered: false, registrations: 120 },
-    { id: 3, title: 'Career Fair', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-03-01', description: 'Meet top employers and explore internship opportunities.', registered: false, registrations: 200 },
-    { id: 4, title: 'Sports Day', imgsrc: 'https://imgs.search.brave.com/jNEPEiT5JFlHvQUuX63McNK_p_Ri0Snb3RMQCQ6RBOs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/ZHJpYmJibGUuY29t/L3VzZXJ1cGxvYWQv/NDIzMjU4MDgvZmls/ZS9vcmlnaW5hbC1m/MTQxZTU3MzRmMzQy/ODliOWNkYjNlMzFi/NDE3MzBlNy5wbmc_/Zm9ybWF0PXdlYnAm/cmVzaXplPTQwMHgz/MDAmdmVydGljYWw9/Y2VudGVy', date: '2025-03-10', description: 'Inter-department sports competition.', registered: false, registrations: 80 },
+    { id: 1, title: 'Tech Symposium 2025', imgsrc: '', date: '2025-02-15', description: 'Annual technology conference featuring industry speakers.', registered: false, registrations: 45 },
+    { id: 2, title: 'Cultural Fest', imgsrc: '', date: '2025-02-15', registered: false, registrations: 120 },
+    { id: 3, title: 'Career Fair', imgsrc: '', date: '2025-03-01', description: 'Meet top employers and explore internship opportunities.', registered: false, registrations: 200 },
+    { id: 4, title: 'Sports Day', imgsrc: '', date: '2025-03-10', description: 'Inter-department sports competition.', registered: false, registrations: 80 },
   ];
 
   try {
@@ -734,6 +733,15 @@ function renderComplaintsTable() {
   `).join('');
 }
 
+// Function to Check Image's Availability
+  function getImageSrc(src) {
+    if (!src || src.trim() === '') {
+      return 'fallback.webp';
+    }
+    return src;
+  }
+
+
 // Here, the events cards are populated from eventsData, which is updated from getEvents().
 function renderEventsList() {
   const container = document.getElementById('events-list');
@@ -752,10 +760,16 @@ function renderEventsList() {
     container.innerHTML = '<div class="empty-state">No events found</div>';
     return;
   }
-  
+
   container.innerHTML = filtered.map(event => `
     <div class="event-card">
-    <img class="event-card-image" src="${event.imgsrc}" alt="event-image" width="100%"/>
+    <img 
+      class="event-card-image" 
+      src="${getImageSrc(event.imgsrc)}"
+      onerror="this.onerror=null; this.src='fallback.webp';"
+      alt="Event Image" 
+      width="100%"
+    />
     <hr style="margin-bottom: 1em;">
       <div class="event-card-header">
         <h3 class="event-card-title">${event.title}</h3>
@@ -793,7 +807,14 @@ function renderUpcomingEvents() {
   // EVENT CARD GENERATOR
   container.innerHTML = upcoming.map(event => `
     <div class="event-card">
-    <img class="event-card-image" src="${event.imgsrc}" width="100%" height="auto"/>
+    <img 
+      class="event-card-image"
+      src="${getImageSrc(event.imgsrc)}"
+      onerror="this.onerror=null; this.src='fallback.webp';"
+      alt="Event Image"
+      width="100%"
+      style="height: auto;"
+    />
     <hr style="margin-bottom: 1em;">
       <div class="event-card-header">
         <h3 class="event-card-title">${event.title}</h3>
@@ -874,7 +895,7 @@ function renderStaffEventsTable() {
   
   tbody.innerHTML = eventsData.map(event => `
     <tr>
-      <td><img src="${event.imgsrc}" height="100" alt="event image"></td>
+      <td><img src="${getImageSrc(event.imgsrc)}" height="100" alt="event image"></td>
       <td>${event.title}</td>
       <td>${event.date}</td>
       <td>
@@ -1022,6 +1043,60 @@ async function render() {
   switch (currentPage) {
     case 'landing':
       app.appendChild(renderLandingPage());
+      // Query the element after it's been rendered to the DOM
+      const heroText = document.querySelector('.hero-highlight');
+      const description = document.querySelector('.hero-description');
+      
+      // Helper function to animate text letter by letter
+      function animateText(element, delay = 0, letterDelay = 30) {
+        if (!element || !element.textContent) return 0;
+        
+        const text = element.textContent;
+        // Wrap each letter in a span with initial opacity 0
+        const wrappedText = [...text].map((letter) => {
+          // Preserve spaces and newlines
+          if (letter === ' ') return ' ';
+          if (letter === '\n') return '\n';
+          return `<span class="letter-animate" style="opacity: 0;">${letter}</span>`;
+        }).join('');
+        element.innerHTML = wrappedText;
+        
+        // Animate letters one by one
+        const letters = element.querySelectorAll('.letter-animate');
+        letters.forEach((letter, index) => {
+          setTimeout(() => {
+            letter.style.transition = 'opacity 0.3s ease-in-out';
+            letter.style.opacity = '1';
+          }, delay + (index * letterDelay));
+        });
+        
+        return letters.length * letterDelay; // Return total animation duration
+      }
+      
+      // Animate hero-highlight first, then description
+      if (heroText && description) {
+        // Store original text for glare effect
+        const originalText = heroText.textContent;
+        heroText.setAttribute('data-text', originalText);
+        
+        // Fade in hero-highlight element with opacity animation
+        heroText.style.opacity = '0';
+        heroText.style.transition = 'opacity 0.6s ease-in-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), letter-spacing 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        
+        // Start opacity fade-in, then letter animation
+        setTimeout(() => {
+          heroText.style.opacity = '1';
+        }, 0);
+        
+        // Remove inline transition after animation completes to allow CSS to take over
+        setTimeout(() => {
+          heroText.style.transition = '';
+        }, 600);
+        
+        const heroDuration = animateText(heroText, 300, 40); // Start letter animation after 300ms fade-in
+        animateText(description, heroDuration + 150, 30); // 30ms delay between letters for description
+      }
+      
       break;
     case 'student-login':
       app.appendChild(renderStudentLoginPage());
