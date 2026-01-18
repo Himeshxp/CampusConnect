@@ -181,6 +181,11 @@ let statsData = {};
 // Tracks current theme ('light' | 'dark'). Defaults to saved value or system preference.
 let currentTheme = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 
+/*
+TODO: Change The Logo's Image Accordingly to the Theme, logo Image for darkmode = 'Campus-darkmode.png', and for light mode 'Campus.png'.
+? DOM img item => document.querySelector('.logo-img img')
+*/
+
 function applyTheme(theme) {
   currentTheme = theme === 'dark' ? 'dark' : 'light';
   try {

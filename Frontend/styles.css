@@ -6,7 +6,7 @@
 :root {
   /* ==== Base Colors ==== */
   --background: hsl(210, 20%, 98%);           /* Main background color */
-  --foreground: hsl(222, 47%, 11%);           /* Main text color */
+  --foreground: hsl(222, 46%, 11%);           /* Main text color */
 
   /* ==== Card Styles ==== */
   --card: hsl(0, 0%, 100%);                   /* Card background */
@@ -246,7 +246,10 @@ input, select, textarea {
 }
 
 .hero-highlight {
-  color: var(--primary);
+  background: linear-gradient(180deg, #b2f1ff, #5555b7, #03102f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .hero-highlight {
   display: inline-block;
@@ -259,7 +262,6 @@ input, select, textarea {
 
 .hero-highlight:hover {
   transform: translateY(-2px) scale(1.03);
-  color: var(--primary);
   letter-spacing: 0.02em;
   text-shadow: 0 6px 18px rgba(59, 130, 246, 0.12);
 }
