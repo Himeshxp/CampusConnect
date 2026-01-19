@@ -7,7 +7,79 @@
 // - The appropriate data rendering function (such as renderEventsList() or renderUpcomingEvents()) then uses eventsData to generate HTML for each card, mapping each event object to a block of HTML.
 // - These HTML blocks are inserted into containers in the DOM, such as those with id="events-list" or id="upcoming-events" (see renderEventsList and renderUpcomingEvents below).
 // See more inline explanations in the relevant functions below.
-const API_BASE = 'http://localhost:8080/';
+// Prefer API base configured in `index.html` (window.CAMPUSCONNECT_API_BASE).
+// Always normalize to exactly one trailing slash so we can safely do `${API_BASE}api/...`.
+const API_BASE = `${String(window.CAMPUSCONNECT_API_BASE || 'http://localhost:8080').replace(/\/+$/, '')}/`;
+
+async function fetchJson(url, options = {}) {
+  const res = await fetch(url, {
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
+    },
+    // Keep auth/session behavior consistent with other calls.
+    credentials: "include",
+    ...options,
+  });
+
+  // Some endpoints may return empty body; handle safely.
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (e) {
+    data = text;
+  }
+
+  if (!res.ok) {
+    const msg =
+      (data && typeof data === "object" && (data.message || data.error)) ||
+      (typeof data === "string" && data) ||
+      `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+
+  return data;
+}
+
+function toDateInputValue(raw) {
+  const s = (raw ?? "").toString().trim();
+  if (!s) return "";
+  // Already in yyyy-mm-dd (what <input type="date"> expects).
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // Common DB/manual format dd-mm-yyyy
+  const m1 = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (m1) {
+    const [, dd, mm, yyyy] = m1;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  // Common format dd/mm/yyyy
+  const m2 = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m2) {
+    const [, dd, mm, yyyy] = m2;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  // Try to parse other formats like "Mon Jan 19 2026 ..."
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return s; // fallback: show raw
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function mapBackendEventToUi(ev) {
+  return {
+    id: ev?.id,
+    title: ev?.eventName || "",
+    description: ev?.eventDescription || "",
+    date: toDateInputValue(ev?.eventDate),
+    // Backend image/registrations not implemented yet.
+    imgsrc: "",
+    registered: false,
+    registrations: 0,
+  };
+}
 
 async function loginStudent(email, password) {
   const response = await fetch(`${API_BASE}api/auth/login`, {
@@ -156,32 +228,14 @@ async function updateComplaintStatus(id, status) {
 
 // Events APIs
 async function getEvents() {
-  // If an events list has been persisted in localStorage (edits from staff), return that first.
   try {
-    const stored = localStorage.getItem('eventsData');
-    if (stored) {
-      // return JSON.parse(stored);
-    }
-  } catch (e) {
-    console.warn('Could not parse events from localStorage', e);
+    const list = await fetchJson(`${API_BASE}api/events/all`, { method: "GET" });
+    if (!Array.isArray(list)) return [];
+    return list.map(mapBackendEventToUi);
+  } catch (err) {
+    console.error("Failed to load events from backend", err);
+    return [];
   }
-
-  // Defaults used on first load. We also persist them to localStorage so edits will survive page navigation.
-  const defaults = [
-    { id: 1, title: 'Tech Symposium 2025', imgsrc: '', date: '2025-02-15', description: 'Annual technology conference featuring industry speakers.', registered: false, registrations: 45 },
-    { id: 2, title: 'Cultural Fest', imgsrc: '', date: '2025-02-15', registered: false, registrations: 120 },
-    { id: 3, title: 'Career Fair', imgsrc: '', date: '2025-03-01', description: 'Meet top employers and explore internship opportunities.', registered: false, registrations: 200 },
-    { id: 4, title: 'Sports Day', imgsrc: '', date: '2025-03-10', description: 'Inter-department sports competition.', registered: false, registrations: 80 },
-  ];
-
-  try {
-    localStorage.setItem('eventsData', JSON.stringify(defaults));
-  } catch (e) {
-    /* ignore */
-  }
-
-  return defaults;
-  // return fetch(`${API_BASE}/events`).then(res => res.json());
 }
 
 async function registerForEvent(eventId) {
@@ -203,28 +257,44 @@ async function unregisterForEvent(eventId) {
 }
 
 async function createEvent(data) {
-  // TODO: Replace with actual API endpoint
-  console.log('Create event:', data);
-  return { success: true, id: Date.now() };
-  // const formData = new FormData();
-  // Object.entries(data).forEach(([key, value]) => formData.append(key, value));
-  // return fetch(`${API_BASE}/events`, {
-  //   method: 'POST',
-  //   body: formData
-  // }).then(res => res.json());
+  // Backend expects: { eventName, eventDescription, eventDate }
+  const payload = {
+    eventName: data?.title || "",
+    eventDescription: data?.description || "",
+    eventDate: data?.date || "",
+  };
+
+  const saved = await fetchJson(`${API_BASE}api/events/add`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const ui = mapBackendEventToUi(saved);
+  return { success: true, id: ui.id, event: ui };
 }
 
 async function deleteEvent(eventId) {
-  // TODO: Replace with actual API endpoint
-  console.log('Delete event:', eventId);
+  await fetchJson(`${API_BASE}api/events/${eventId}`, { method: "DELETE" });
   return { success: true };
-  // return fetch(`${API_BASE}/events/${eventId}`, {
-  //   method: 'DELETE'
-  // }).then(res => res.json());
 }
 
 async function updateEvent(eventId) {
     openEventModal(eventId)
+}
+
+async function updateEventApi(eventId, data) {
+  const payload = {
+    eventName: data?.title || "",
+    eventDescription: data?.description || "",
+    eventDate: data?.date || "",
+  };
+
+  const updated = await fetchJson(`${API_BASE}api/events/update/${eventId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  return mapBackendEventToUi(updated);
 }
 
 // Stats APIs
@@ -239,16 +309,31 @@ async function getStudentStats() {
 }
 
 async function getStaffStats() {
-  // TODO: Replace with actual API endpoint
-  return {
+  // Complaints stats are still demo values, but events counts are pulled from backend so dashboards stay accurate.
+  const base = {
     totalComplaints: 15,
     pendingComplaints: 5,
     inProgressComplaints: 4,
     resolvedComplaints: 6,
-    totalEvents: 4,
-    upcomingEvents: 3,
+    totalEvents: 0,
+    upcomingEvents: 0,
   };
-  // return fetch(`${API_BASE}/staff/stats`).then(res => res.json());
+
+  try {
+    const events = await getEvents();
+    base.totalEvents = Array.isArray(events) ? events.length : 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    base.upcomingEvents = (Array.isArray(events) ? events : []).filter(ev => {
+      const d = new Date(ev?.date);
+      return !Number.isNaN(d.getTime()) && d >= today;
+    }).length;
+  } catch (e) {
+    // ignore - keep defaults
+  }
+
+  return base;
 }
 
 // ========== State Management ==========
@@ -865,21 +950,20 @@ async function handleCreateEvent(e) {
     image: document.getElementById('event-image').files[0],
   };
   
-  const result = await createEvent(data);
-  if (result.success) {
-    eventsData.push({
-      id: result.id,
-      title: data.title,
-      date: data.date,
-      description: data.description,
-      imgsrc: '', // file uploads not implemented in this demo; leave blank or add URL
-      registered: false,
-      registrations: 0,
-    });
-    try { localStorage.setItem('eventsData', JSON.stringify(eventsData)); } catch (e) { /* ignore */ }
-    closeEventModal();
-    renderStaffEventsTable();
-    alert('Event created successfully!');
+  try {
+    const result = await createEvent(data);
+    if (result?.success) {
+      // Reload from backend so the UI always reflects DB state.
+      eventsData = await getEvents();
+      closeEventModal();
+      renderStaffEventsTable();
+      alert('Event created successfully!');
+    } else {
+      alert('Failed to create event');
+    }
+  } catch (err) {
+    console.error('Create event failed', err);
+    alert(err?.message || 'Failed to create event');
   }
 }
 
@@ -921,11 +1005,15 @@ async function handleUpdateStatus(id, status) {
 
 async function handleDeleteEvent(eventId) {
   if (confirm('Are you sure you want to delete this event?')) {
-    const result = await deleteEvent(eventId);
-    if (result.success) {
-      eventsData = eventsData.filter(e => e.id !== eventId);
-      try { localStorage.setItem('eventsData', JSON.stringify(eventsData)); } catch (e) { /* ignore */ }
-      renderStaffEventsTable();
+    try {
+      const result = await deleteEvent(eventId);
+      if (result?.success) {
+        eventsData = await getEvents();
+        renderStaffEventsTable();
+      }
+    } catch (err) {
+      console.error('Delete event failed', err);
+      alert(err?.message || 'Failed to delete event');
     }
   }
 }
@@ -1242,25 +1330,29 @@ async function handleSaveEditedEvent(e) {
     return;
   }
 
-  ev.title = title;
-  ev.date = date;
-  ev.description = description;
-  ev.imgsrc = imgsrc;
-  ev.registrations = registrations;
-
-  // Placeholder API call - could be replaced with real updateEvent API
   try {
-    // If an API existed, we'd call something like: await updateEventApi(selectedEventId, ev)
+    const updatedUi = await updateEventApi(selectedEventId, {
+      title,
+      date,
+      description,
+    });
+
+    // Update UI-only fields that backend doesn't store (image/registrations).
+    updatedUi.imgsrc = imgsrc;
+    updatedUi.registrations = registrations;
+    updatedUi.registered = ev.registered || false;
+
+    // Update in-memory list
+    const idx = eventsData.findIndex(x => x.id === selectedEventId);
+    if (idx !== -1) eventsData[idx] = { ...eventsData[idx], ...updatedUi };
   } catch (err) {
     console.error('Failed to update event via API', err);
+    alert(err?.message || 'Failed to update event');
+    return;
   }
 
-  // Persist updated events list so the change survives navigation/reloads (until backend is wired)
-  try {
-    localStorage.setItem('eventsData', JSON.stringify(eventsData));
-  } catch (e) {
-    console.warn('Could not persist events to localStorage', e);
-  }
+  // Reload from backend to ensure DB is the source of truth.
+  try { eventsData = await getEvents(); } catch (e) { /* ignore */ }
 
   // After save, navigate back to staff events and refresh table
   navigate('staff-events');

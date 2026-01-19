@@ -26,7 +26,7 @@ public class Event {
         this.id = id;
         this.eventName = eventName;
         this.eventDescription = eventDescription;
-
+        this.eventDate = new Date().toString();
     }
 
 
