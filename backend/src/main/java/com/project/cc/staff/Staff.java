@@ -19,6 +19,7 @@ public class Staff {
     private String role="STAFF";
     public Staff(String email, String password, String role) {
         this.email = email;
+        this.password = password;
     }
 
     public Staff() {

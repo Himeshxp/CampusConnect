@@ -7,36 +7,55 @@
 // - The appropriate data rendering function (such as renderEventsList() or renderUpcomingEvents()) then uses eventsData to generate HTML for each card, mapping each event object to a block of HTML.
 // - These HTML blocks are inserted into containers in the DOM, such as those with id="events-list" or id="upcoming-events" (see renderEventsList and renderUpcomingEvents below).
 // See more inline explanations in the relevant functions below.
-const API_BASE = '/api';
+const API_BASE = 'http://localhost:8080/';
 
-// Auth APIs
 async function loginStudent(email, password) {
-  // TODO: Replace with actual API endpoint
-  console.log('Login student:', { email, password });
-  return { success: true, user: { id: 1, email, role: 'student', name: 'John Student' } };
-  // return fetch(`${API_BASE}/auth/student/login`, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ email, password })
-  // }).then(res => res.json());
+  const response = await fetch(`${API_BASE}api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    // Required for Spring session (JSESSIONID) to be stored/sent.
+    credentials: "include",
+    body: JSON.stringify({
+      email,
+      password,
+      role: "student",
+    }),
+  });
+
+  return response.json();
 }
 
+
 async function loginStaff(email, password) {
-  // TODO: Replace with actual API endpoint
-  console.log('Login staff:', { email, password });
-  return { success: true, user: { id: 1, email, role: 'staff', name: 'Jane Staff' } };
-  // return fetch(`${API_BASE}/auth/staff/login`, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ email, password })
-  // }).then(res => res.json());
+  const response = await fetch(`${API_BASE}api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      email,
+      password,
+      role: "staff",
+    }),
+  });
+
+return response.json();
 }
 
 async function logout() {
-  // TODO: Replace with actual API endpoint
-  localStorage.removeItem('user');
-  return { success: true };
-  // return fetch(`${API_BASE}/auth/logout`, { method: 'POST' }).then(res => res.json());
+  const response = await fetch(`${API_BASE}api/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+return response.json();
+}
+
+async function getMe() {
+  const response = await fetch(`${API_BASE}api/auth/me`, {
+    method: "GET",
+    credentials: "include",
+  });
+  return response.json();
 }
 
 // Complaints APIs
@@ -182,7 +201,9 @@ async function getStaffStats() {
 }
 
 // ========== State Management ==========
-let currentUser = JSON.parse(localStorage.getItem('user')) || null;
+// Auth state is kept in-memory and restored from the server session via `/api/auth/me`.
+let currentUser = null;
+let authChecked = false;
 let currentPage = 'landing';
 // The following variable is used as the source for event cards on all event-related screens.
 let complaintsData = [];
@@ -496,11 +517,18 @@ async function handleStudentLogin(e) {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
   
-  const result = await loginStudent(email, password);
-  if (result.success) {
-    currentUser = result.user;
-    localStorage.setItem('user', JSON.stringify(currentUser));
-    navigate('student-dashboard');
+  try {
+    const result = await loginStudent(email, password);
+    if (result?.success) {
+      currentUser = { id: result.id, email: result.email, name: result.name, role: result.role };
+      authChecked = true;
+      navigate('student-dashboard');
+      return;
+    }
+    alert(result?.message || 'Student login failed');
+  } catch (err) {
+    console.error('Student login failed', err);
+    alert('Student login failed');
   }
 }
 
@@ -509,18 +537,50 @@ async function handleStaffLogin(e) {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
   
-  const result = await loginStaff(email, password);
-  if (result.success) {
-    currentUser = result.user;
-    localStorage.setItem('user', JSON.stringify(currentUser));
-    navigate('staff-dashboard');
+  try {
+    const result = await loginStaff(email, password);
+    if (result?.success) {
+      currentUser = { id: result.id, email: result.email, name: result.name, role: result.role };
+      authChecked = true;
+      navigate('staff-dashboard');
+      return;
+    }
+    alert(result?.message || 'Staff login failed');
+  } catch (err) {
+    console.error('Staff login failed', err);
+    alert('Staff login failed');
   }
 }
 
 async function handleLogout() {
-  await logout();
+  try {
+    await logout();
+  } catch (err) {
+    console.warn('Logout request failed (clearing local state anyway)', err);
+  }
   currentUser = null;
+  authChecked = true;
+  try { localStorage.removeItem('user'); } catch (e) { /* ignore */ }
   navigate('landing');
+}
+
+async function ensureCurrentUser() {
+  if (authChecked) return currentUser;
+  authChecked = true;
+
+  try {
+    const me = await getMe();
+    if (me?.authenticated) {
+      currentUser = { id: me.id, email: me.email, name: me.name, role: me.role };
+    } else {
+      currentUser = null;
+    }
+  } catch (err) {
+    console.warn('Failed to load session user', err);
+    currentUser = null;
+  }
+
+  return currentUser;
 }
 
 function toggleMobileNav() {
@@ -1026,12 +1086,18 @@ async function render() {
   const protectedStudentPages = ['student-dashboard', 'student-complaints', 'student-events'];
   const protectedStaffPages = ['staff-dashboard', 'staff-complaints', 'staff-events'];
   
-  if (protectedStudentPages.includes(currentPage) && (!currentUser || currentUser.role !== 'student')) {
+  const needsStudent = protectedStudentPages.includes(currentPage);
+  const needsStaff = protectedStaffPages.includes(currentPage);
+  if ((needsStudent || needsStaff) && !authChecked) {
+    await ensureCurrentUser();
+  }
+
+  if (needsStudent && (!currentUser || currentUser.role !== 'student')) {
     navigate('student-login');
     return;
   }
   
-  if (protectedStaffPages.includes(currentPage) && (!currentUser || currentUser.role !== 'staff')) {
+  if (needsStaff && (!currentUser || currentUser.role !== 'staff')) {
     navigate('staff-login');
     return;
   }
