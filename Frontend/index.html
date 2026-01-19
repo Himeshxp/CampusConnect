@@ -263,6 +263,7 @@
                     <th>Category</th>
                     <th>Status</th>
                     <th>Date</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="complaints-table"></tbody>
@@ -488,6 +489,8 @@
         </div>
       </div>
     </div>
+    <!-- Rating Modal -->
+    <!-- rating modal moved to top-level (see below) -->
   </template>
 
   <template id="template-staff-events">
@@ -623,6 +626,46 @@
   <script>
     window.CAMPUSCONNECT_API_BASE = "http://localhost:8080";
   </script>
+  <!-- Rating Modal (top-level so both students and staff can open it) -->
+  <div id="rating-modal" class="modal-overlay hidden" onclick="closeModal(event, 'rating-modal')">
+    <div class="modal-content" onclick="event.stopPropagation()" style="max-width:640px;">
+      <div class="modal-header">
+        <h2>Rate this complaint</h2>
+        <p style="color:var(--muted-foreground); margin-top:0.25rem;">Only available for resolved complaints</p>
+      </div>
+      <form id="rating-form" class="modal-body" onsubmit="handleSubmitRating(event)">
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+          <div>
+            <label style="font-weight:600; display:block; margin-bottom:0.5rem;">Your rating</label>
+            <div id="rating-stars" style="font-size:1.5rem;"> 
+              <!-- stars injected by JS -->
+            </div>
+          </div>
+
+          <div>
+            <label style="font-weight:600; display:block; margin-bottom:0.5rem;">Quick tags</label>
+            <div id="rating-tags" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <button type="button" class="tag-btn" data-tag="Slow response">⏱️ Slow response</button>
+              <button type="button" class="tag-btn" data-tag="Polite staff">😊 Polite staff</button>
+              <button type="button" class="tag-btn" data-tag="Problem fixed">🔧 Problem fixed</button>
+              <button type="button" class="tag-btn" data-tag="Not satisfied">❌ Not satisfied</button>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-weight:600; display:block; margin-bottom:0.5rem;">Additional comments (optional)</label>
+            <textarea id="rating-comment" rows="4" placeholder="Any additional feedback..." style="width:100%;"></textarea>
+          </div>
+
+          <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:0.5rem;">
+            <button type="button" class="btn btn-outline" onclick="closeRatingModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Submit Rating</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
