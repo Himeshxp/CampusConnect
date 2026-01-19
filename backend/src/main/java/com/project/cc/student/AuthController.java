@@ -14,10 +14,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-
     @Autowired
     private StudentRepository studentRepo;
-
     @Autowired
     private StaffRepository staffRepo;
 
@@ -72,7 +70,7 @@ public class AuthController {
                     "role", "staff",
                     "id", staff.getId(),
                     "email", staff.getEmail(),
-                    "name", staff.getEmail(),
+                    "name", (staff.getFirstName() == null ? "" : staff.getFirstName())+(staff.getLastName() == null ? "" : (" " + staff.getLastName())),
                     "message", "Staff login successful"
             ));
         }
@@ -93,7 +91,7 @@ public class AuthController {
 
         if ("student".equals(role) && userObj instanceof Student student) {
             String name = (student.getFirstName() == null ? "" : student.getFirstName()) +
-                    (student.getLastName() == null ? "" : (" " + student.getLastName())).trim();
+                    (student.getLastName() == null ? "" : (" " + student.getLastName()));
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "authenticated", true,
@@ -105,13 +103,15 @@ public class AuthController {
         }
 
         if ("staff".equals(role) && userObj instanceof Staff staff) {
+            String name = (staff.getFirstName() == null ? "" : staff.getFirstName()) +
+                    (staff.getLastName() == null ? "" : (" " + staff.getLastName()));
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "authenticated", true,
                     "role", "staff",
                     "id", staff.getId(),
                     "email", staff.getEmail(),
-                    "name", staff.getEmail()
+                    "name", name
             ));
         }
 
