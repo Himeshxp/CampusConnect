@@ -41,7 +41,15 @@ async function logout() {
 
 // Complaints APIs
 async function getComplaints() {
-  // TODO: Replace with actual API endpoint
+  // Read complaints from localStorage if available so student feedback/rating persists in the demo.
+  try {
+    const stored = localStorage.getItem('complaintsData');
+    if (stored) return JSON.parse(stored);
+  } catch (e) {
+    console.warn('Could not read complaints from localStorage', e);
+  }
+
+  // Fallback to defaults (will be initialized by getAllComplaints on staff side)
   return [
     { id: 1, title: 'Library AC not working', category: 'Facilities', status: 'Pending', date: '2025-01-10', description: 'The air conditioning in the main library has been broken for 3 days.' },
     { id: 2, title: 'WiFi connectivity issues', category: 'IT', status: 'In-progress', date: '2025-01-08', description: 'Intermittent WiFi drops in Block B.' },
@@ -51,20 +59,43 @@ async function getComplaints() {
 }
 
 async function getAllComplaints() {
-  // TODO: Replace with actual API endpoint (for staff)
-  return [
-    { id: 1, title: 'Library AC not working', category: 'Facilities', status: 'Pending', date: '2025-01-10', studentName: 'John Doe', description: 'The AC is broken.' },
-    { id: 2, title: 'WiFi connectivity issues', category: 'IT', status: 'In-progress', date: '2025-01-08', studentName: 'Jane Smith', description: 'WiFi keeps dropping.' },
-    { id: 3, title: 'Cafeteria food quality', category: 'Food', status: 'Resolved', date: '2025-01-05', studentName: 'Mike Johnson', description: 'Food quality issue.' },
-    { id: 4, title: 'Broken desk in Room 201', category: 'Facilities', status: 'Pending', date: '2025-01-12', studentName: 'Sarah Wilson', description: 'Desk is wobbly.' },
+  // For demo: persist complaints to localStorage so ratings/feedback survive reloads.
+  try {
+    const stored = localStorage.getItem('complaintsData');
+    if (stored) return JSON.parse(stored);
+  } catch (e) {
+    console.warn('Could not read complaints from localStorage', e);
+  }
+
+  const defaults = [
+    { id: 1, title: 'Library AC not working', category: 'Facilities', status: 'Pending', date: '2025-01-10', studentName: 'John Doe', description: 'The AC is broken.', rated: false },
+    { id: 2, title: 'WiFi connectivity issues', category: 'IT', status: 'In-progress', date: '2025-01-08', studentName: 'Jane Smith', description: 'WiFi keeps dropping.', rated: false },
+    { id: 3, title: 'Cafeteria food quality', category: 'Food', status: 'Resolved', date: '2025-01-05', studentName: 'Mike Johnson', description: 'Food quality issue.', rated: false },
+    { id: 4, title: 'Broken desk in Room 201', category: 'Facilities', status: 'Pending', date: '2025-01-12', studentName: 'Sarah Wilson', description: 'Desk is wobbly.', rated: false },
   ];
+
+  try { localStorage.setItem('complaintsData', JSON.stringify(defaults)); } catch (e) { /* ignore */ }
+  return defaults;
   // return fetch(`${API_BASE}/staff/complaints`).then(res => res.json());
 }
 
 async function submitComplaint(data) {
-  // TODO: Replace with actual API endpoint
+  // Demo implementation: assign a small incremental id (based on stored complaints)
   console.log('Submit complaint:', data);
-  return { success: true, id: Date.now() };
+  try {
+    const raw = localStorage.getItem('complaintsData');
+    let stored = [];
+    if (raw) {
+      try { stored = JSON.parse(raw) || []; } catch (e) { stored = []; }
+    }
+    const ids = stored.map(c => Number(c.id)).filter(n => Number.isFinite(n));
+    const maxId = ids.length ? Math.max(...ids) : 0;
+    const nextId = maxId + 1;
+    return { success: true, id: nextId };
+  } catch (err) {
+    console.warn('Could not determine next complaint id, falling back to timestamp', err);
+    return { success: true, id: Date.now() };
+  }
   // const formData = new FormData();
   // Object.entries(data).forEach(([key, value]) => formData.append(key, value));
   // return fetch(`${API_BASE}/complaints`, {
@@ -74,14 +105,34 @@ async function submitComplaint(data) {
 }
 
 async function updateComplaintStatus(id, status) {
-  // TODO: Replace with actual API endpoint
+  // For demo: update the stored complaintsData in localStorage so students see status changes.
   console.log('Update complaint status:', { id, status });
-  return { success: true };
-  // return fetch(`${API_BASE}/complaints/${id}/status`, {
-  //   method: 'PUT',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ status })
-  // }).then(res => res.json());
+  try {
+    // Try to load stored complaints (fall back to in-memory complaintsData)
+    let stored = [];
+    try {
+      const raw = localStorage.getItem('complaintsData');
+      stored = raw ? JSON.parse(raw) : (Array.isArray(complaintsData) ? complaintsData : []);
+    } catch (e) {
+      stored = Array.isArray(complaintsData) ? complaintsData : [];
+    }
+
+    const idx = stored.findIndex(c => c.id === id);
+    if (idx !== -1) {
+      stored[idx].status = status;
+      // persist
+      try { localStorage.setItem('complaintsData', JSON.stringify(stored)); } catch (e) { console.warn('Could not persist complaints to localStorage', e); }
+      // update in-memory copy
+      if (Array.isArray(complaintsData)) {
+        const mem = complaintsData.find(c => c.id === id);
+        if (mem) mem.status = status;
+      }
+      return { success: true };
+    }
+  } catch (err) {
+    console.warn('Failed updating complaint status in storage', err);
+  }
+  return { success: false };
 }
 
 // Events APIs
@@ -573,6 +624,16 @@ function openDetailsModal(complaint) {
         <div style="font-size: 0.875rem; font-weight: 500; color: var(--muted-foreground);">Description</div>
         <div style="color: var(--muted-foreground); margin-top: 0.25rem;">${complaint.description}</div>
       </div>
+      ${complaint.rated ? `
+      <div>
+        <div style="font-size: 0.875rem; font-weight: 500; color: var(--muted-foreground); margin-top:0.5rem;">Feedback</div>
+        <div style="margin-top:0.25rem;">
+          <div style="font-weight:600;">Rating: ${'★'.repeat(complaint.rating || 0)}${'☆'.repeat(5 - (complaint.rating || 0))}</div>
+          ${complaint.feedbackTags && complaint.feedbackTags.length ? `<div style="margin-top:0.5rem;">Tags: ${complaint.feedbackTags.map(t => `<span style=\"margin-right:0.5rem;\">${t}</span>`).join('')}</div>` : ''}
+          ${complaint.feedbackText ? `<div style="margin-top:0.5rem;color:var(--muted-foreground);">${complaint.feedbackText}</div>` : ''}
+        </div>
+      </div>
+      ` : ''}
     </div>
   `;
   document.getElementById('details-modal').classList.remove('hidden');
@@ -580,6 +641,112 @@ function openDetailsModal(complaint) {
 
 function closeDetailsModal() {
   document.getElementById('details-modal').classList.add('hidden');
+}
+
+// ========== Rating Modal Logic ==========
+let ratingState = {
+  complaintId: null,
+  rating: 0,
+  tags: new Set(),
+};
+
+function openRatingModal(complaintId) {
+  // Only students can submit ratings
+  if (currentUser?.role !== 'student') {
+    alert('Only students can submit feedback for complaints.');
+    return;
+  }
+
+  ratingState = { complaintId, rating: 0, tags: new Set() };
+  const modal = document.getElementById('rating-modal');
+  if (!modal) return;
+
+  // render stars
+  const starsContainer = modal.querySelector('#rating-stars');
+  starsContainer.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const span = document.createElement('button');
+    span.type = 'button';
+    span.className = 'rating-star';
+    span.style.fontSize = '1.6rem';
+    span.style.background = 'transparent';
+    span.style.border = 'none';
+    span.style.cursor = 'pointer';
+    span.textContent = '☆';
+    span.dataset.value = i;
+    span.onclick = () => {
+      ratingState.rating = i;
+      updateStarDisplay(starsContainer, i);
+    };
+    starsContainer.appendChild(span);
+  }
+
+  // setup tags
+  const tagsContainer = modal.querySelectorAll('.tag-btn');
+  tagsContainer.forEach(btn => {
+    btn.classList.remove('active');
+    btn.onclick = () => {
+      const tag = btn.dataset.tag;
+      if (ratingState.tags.has(tag)) {
+        ratingState.tags.delete(tag);
+        btn.classList.remove('active');
+      } else {
+        ratingState.tags.add(tag);
+        btn.classList.add('active');
+      }
+    };
+  });
+
+  // clear comment
+  modal.querySelector('#rating-comment').value = '';
+
+  modal.classList.remove('hidden');
+}
+
+function updateStarDisplay(container, value) {
+  const children = Array.from(container.children);
+  children.forEach(ch => {
+    const v = Number(ch.dataset.value);
+    ch.textContent = v <= value ? '★' : '☆';
+    ch.style.color = v <= value ? 'gold' : '';
+  });
+}
+
+function closeRatingModal() {
+  const modal = document.getElementById('rating-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  ratingState = { complaintId: null, rating: 0, tags: new Set() };
+}
+
+async function handleSubmitRating(e) {
+  e.preventDefault();
+  if (!ratingState || !ratingState.complaintId) return;
+
+  const comment = document.getElementById('rating-comment').value.trim();
+  const tags = Array.from(ratingState.tags);
+  const rating = ratingState.rating || 0;
+
+  const complaint = complaintsData.find(c => c.id === ratingState.complaintId);
+  if (!complaint) {
+    alert('Complaint not found');
+    return;
+  }
+
+  // save rating data
+  complaint.rated = true;
+  complaint.rating = rating;
+  complaint.feedbackText = comment;
+  complaint.feedbackTags = tags;
+
+  // persist
+  try { localStorage.setItem('complaintsData', JSON.stringify(complaintsData)); } catch (err) { console.warn(err); }
+
+  closeRatingModal();
+  // Re-render the appropriate complaints table depending on current page
+  if (currentPage === 'staff-complaints') renderStaffComplaintsTable();
+  if (currentPage === 'student-complaints') renderComplaintsTable();
+  alert('Thanks for your feedback');
 }
 
 function closeModal(e, modalId) {
@@ -599,12 +766,30 @@ async function handleSubmitComplaint(e) {
   
   const result = await submitComplaint(data);
   if (result.success) {
-    complaintsData.push({
+    const newComplaint = {
       id: result.id,
-      ...data,
+      title: data.title,
+      category: data.category,
+      description: data.description,
       status: 'Pending',
       date: new Date().toISOString().split('T')[0],
-    });
+      studentName: currentUser?.name || 'Student',
+      rated: false,
+    };
+
+    // update in-memory list
+    complaintsData.push(newComplaint);
+
+    // persist so staff can see it as well
+    try {
+      const raw = localStorage.getItem('complaintsData');
+      const stored = raw ? JSON.parse(raw) : [];
+      stored.push(newComplaint);
+      localStorage.setItem('complaintsData', JSON.stringify(stored));
+    } catch (err) {
+      console.warn('Could not persist new complaint to localStorage', err);
+    }
+
     closeComplaintModal();
     renderComplaintsTable();
     alert('Complaint submitted successfully!');
@@ -719,7 +904,7 @@ function renderComplaintsTable() {
   });
   
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No complaints found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No complaints found</td></tr>';
     return;
   }
   
@@ -729,6 +914,13 @@ function renderComplaintsTable() {
       <td>${complaint.category}</td>
       <td>${renderStatusBadge(complaint.status)}</td>
       <td>${complaint.date}</td>
+      <td>
+        <div class="action-buttons">
+          ${complaint.status === 'Resolved' && (currentUser?.role === 'student') ? (
+            complaint.rated ? `<button class="btn btn-ghost btn-sm" disabled>Thanks for feedback</button>` : `<button class="btn btn-ghost btn-sm" onclick="openRatingModal(${complaint.id})">⭐ Rate</button>`
+          ) : ''}
+        </div>
+      </td>
     </tr>
   `).join('');
 }
@@ -878,6 +1070,7 @@ function renderStaffComplaintsTable() {
           <button class="btn btn-ghost btn-sm" onclick='openDetailsModal(${JSON.stringify(complaint)})'>
             ${icon('visibility')}
           </button>
+          ${complaint.rated ? `<button class="btn btn-ghost btn-sm" onclick='openDetailsModal(${JSON.stringify(complaint)})'>View feedback</button>` : ''}
         </div>
       </td>
     </tr>
