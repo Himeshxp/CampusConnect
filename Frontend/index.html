@@ -68,6 +68,7 @@
     </div>
   </template>
 
+  <!-- !: Student Login Form -->
   <template id="template-student-login">
     <div class="login-page">
       <button class="theme-toggle theme-toggle-left" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
@@ -96,6 +97,7 @@
               <div class="input-icon-wrapper">
                 <span class="input-icon"><span class="material-icons-round">lock</span></span>
                 <input type="password" id="password" placeholder="Enter your password" required>
+                <span class="eye-icon" onclick="toggleVisibility(this)"><span class="material-icons-round">visibility</span></span>
               </div>
             </div>
             <button type="submit" class="btn btn-student btn-full">Login</button>
@@ -105,6 +107,7 @@
     </div>
   </template>
 
+  <!-- !: Staff Login Form -->
   <template id="template-staff-login">
     <div class="login-page login-page-staff">
       <button class="theme-toggle theme-toggle-left" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
@@ -133,6 +136,7 @@
               <div class="input-icon-wrapper">
                 <span class="input-icon"><span class="material-icons-round">lock</span></span>
                 <input type="password" id="password" placeholder="Enter your password" required>
+                <span class="eye-icon" onclick="toggleVisibility(this)"><span class="material-icons-round">visibility</span></span>
               </div>
             </div>
             <button type="submit" class="btn btn-staff btn-full">Login</button>
@@ -206,7 +210,7 @@
             <div class="events-section">
               <div class="section-header">
                 <h2 class="section-title">Upcoming Events</h2>
-                <button class="btn btn-ghost btn-sm" onclick="navigate('student-events')">View All</button>
+                <button class="btn btn-ghost btn-sm view-all-btn" onclick="navigate('student-events')">View All</button>
               </div>
               <div class="events-grid" id="upcoming-events"></div>
             </div>
@@ -329,10 +333,10 @@
             
             <div class="search-section">
               <div class="search-input-wrapper">
+                <input type="text" class="search-input" id="event-search" placeholder="Search events..." oninput="filterEvents()">
                 <span class="search-icon">
                   <span class="material-icons-round">search</span>
                 </span>
-                <input type="text" class="search-input" id="event-search" placeholder="Search events..." oninput="filterEvents()">
               </div>
             </div>
             
@@ -350,7 +354,7 @@
         <div class="dashboard-container">
           <div class="dashboard-content">
             <div class="dashboard-header">
-              <h1>Staff Dashboard</h1>
+              <h1>Welcome Back, <span id="staff-name"></span>!</h1>
               <p>Manage complaints and events</p>
             </div>
             
@@ -626,6 +630,7 @@
   <script>
     window.CAMPUSCONNECT_API_BASE = "http://localhost:8080";
   </script>
+
   <!-- Rating Modal (top-level so both students and staff can open it) -->
   <div id="rating-modal" class="modal-overlay hidden" onclick="closeModal(event, 'rating-modal')">
     <div class="modal-content" onclick="event.stopPropagation()" style="max-width:640px;">

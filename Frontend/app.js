@@ -359,6 +359,9 @@ TODO: Change The Logo's Image Accordingly to the Theme, logo Image for darkmode 
 
 function applyTheme(theme) {
   currentTheme = theme === 'dark' ? 'dark' : 'light';
+  if (currentTheme === 'dark') {
+    // document.querySelector('.logo-img').setAttribute('src', )
+  }
   try {
     document.documentElement.setAttribute('data-theme', currentTheme === 'dark' ? 'dark' : 'light');
   } catch (e) {
@@ -384,6 +387,7 @@ function initTheme() {
 
 // Initialize theme on load
 initTheme();
+
 // Ensure theme icons/text are correct once DOM is ready (covers inline template buttons)
 document.addEventListener('DOMContentLoaded', () => applyTheme(currentTheme));
 
@@ -420,6 +424,24 @@ function getPageFromHash() {
 // ========== Icon Helper ==========
 function icon(name) {
   return `<span class="material-icons-round">${name}</span>`;
+}
+
+// ========== Eye Icon Functionality ==========
+
+// Issue: "Cannot read properties of undefined" or "Cannot read properties of null (reading 'addEventListener')" will occur
+// if document.querySelector('.eye-icon') returns null (i.e., there is no element with class 'eye-icon' in the DOM at this point).
+// The eye icon will only exist in the DOM after the login form is rendered, not on initial script execution.
+
+// Solution: Attach the event listener *after* the relevant DOM has loaded (typically after rendering the login form).
+// Example: run this after login form is added to DOM.
+
+function toggleVisibility(eyeicon) {
+  const passwordInput = document.getElementById('password');
+  if (!passwordInput) return;
+  passwordInput.type = (passwordInput.type === 'password') ? 'text' : 'password';
+  passwordInput.type === 'text'
+  ? eyeicon.firstElementChild.textContent = 'visibility_off'
+  : eyeicon.firstElementChild.textContent = 'visibility'
 }
 
 // ========== Template Helper ==========
@@ -589,6 +611,11 @@ function renderStaffDashboard() {
   if (navbarPlaceholder && navbar) {
     const navElement = navbar.querySelector('nav');
     if (navElement) navbarPlaceholder.replaceWith(navElement);
+  }
+
+  const staffNameSpan = clone.querySelector('#staff-name');
+  if (staffNameSpan) {
+    staffNameSpan.textContent = currentUser?.name.trim() || 'Staff';
   }
   
   const statsSection = clone.querySelector('#staff-stats');
@@ -1137,7 +1164,7 @@ function renderUpcomingEvents() {
   const container = document.getElementById('upcoming-events');
   if (!container) return;
   
-  const upcoming = eventsData.slice(0, 2);
+  const upcoming = eventsData.slice(0, 3);
   
   if (upcoming.length === 0) {
     container.innerHTML = '<div class="empty-state">No upcoming events</div>';
