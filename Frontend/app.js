@@ -356,7 +356,7 @@ function getSavedTheme() {
 }
 
 function getLogoSrc(theme) {
-  return theme === 'dark' ? 'Campus-darkmode.png' : 'Campus.png';
+  return theme === 'dark' ? 'images/Campus-darkmode.png' : 'images/Campus.png';
 }
 
 function applyTheme(theme) {
@@ -466,6 +466,37 @@ function renderStaffLoginPage() {
   return clone ? clone : document.createDocumentFragment();
 }
 
+// Smooth Hover Indicator for Navbar Links
+function initNavbarLinksIndicator(container) {
+  const indicator = container.querySelector('.navbar-links-indicator');
+  const linkEls = container.querySelectorAll('.navbar-link');
+  if (!indicator || !linkEls.length) return;
+
+  function positionTo(el) {
+    if (!el) {
+      indicator.style.left = '0';
+      indicator.style.width = '0';
+      return;
+    }
+    indicator.style.left = `${el.offsetLeft}px`;
+    indicator.style.width = `${el.offsetWidth}px`;
+  }
+
+  linkEls.forEach((link) => {
+    link.addEventListener('mouseenter', () => positionTo(link));
+  });
+  container.addEventListener('mouseleave', () => {
+    const active = container.querySelector('.navbar-link.active');
+    positionTo(active || linkEls[0]);
+  });
+
+  // Initial position after nav is in DOM
+  setTimeout(() => {
+    const active = container.querySelector('.navbar-link.active');
+    positionTo(active || linkEls[0]);
+  }, 0);
+}
+
 function renderNavbar(role, activePage) {
   const isStudent = role === 'student';
   const links = isStudent 
@@ -513,6 +544,13 @@ function renderNavbar(role, activePage) {
     mobileLink.innerHTML = `${icon(link.icon)} ${link.label}`;
     mobileNav.appendChild(mobileLink);
   });
+
+  // Sliding hover indicator (replaces CSS ::after / :has)
+  const indicator = document.createElement('div');
+  indicator.className = 'navbar-links-indicator';
+  indicator.setAttribute('aria-hidden', 'true');
+  linksContainer.prepend(indicator);
+  initNavbarLinksIndicator(linksContainer);
   
   const logoutBtn = document.createElement('button');
   logoutBtn.className = 'navbar-mobile-link w-100 logout';
@@ -1126,7 +1164,7 @@ function renderComplaintsTable() {
 // Function to Check Image's Availability
   function getImageSrc(src) {
     if (!src || src.trim() === '') {
-      return 'fallback.webp';
+      return 'images/fallback.webp';
     }
     return src;
   }
