@@ -341,6 +341,30 @@
             </div>
             
             <div class="events-grid" id="events-list"></div>
+
+            <!-- Modal for confirming registration -->
+            <div id="event-register-modal" class="modal-overlay hidden" onclick="closeRegisterModal(event)">
+              <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                  <h2>Register for Event</h2>
+                </div>
+                <form class="modal-body" id="event-register-form" onsubmit="handleEventRegisterSubmit(event)">
+                  <div>
+                    <label style="font-weight:600;">Event Name:</label>
+                    <span id="register-event-name"></span>
+                  </div>
+                  <div>
+                    <label style="font-weight:600;">Your Details:</label>
+                    <div id="register-student-info"></div>
+                  </div>
+                  <div class="modal-footer" style="margin-top:1rem;">
+                    <button type="button" class="btn btn-outline" onclick="closeRegisterModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Confirm Registration</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
           </div>
         </div>
       </main>

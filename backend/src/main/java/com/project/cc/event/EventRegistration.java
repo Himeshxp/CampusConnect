@@ -1,6 +1,5 @@
 package com.project.cc.event;
 
-import com.project.cc.student.Student;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -10,12 +9,70 @@ public class EventRegistration {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    //foreign keys here
-    @ManyToOne
-    private Student student;
+    //Event info
+    private Integer eventId;
+    private String eventName;
 
-    @ManyToOne
-    private Event event;
+    //Registered student info
+
+    private Integer studentId;
+    private String studentName;
+    private String email;
+
+    public EventRegistration() {
+    }
+
+    public String getEmail(String email) {
+        return this.email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getStudentName() {
+        return studentName;
+    }
+
+    public void setStudentName(String studentName) {
+        this.studentName = studentName;
+    }
+
+    public Integer getStudentId() {
+        return studentId;
+    }
+
+    public void setStudentId(Integer studentId) {
+        this.studentId = studentId;
+    }
+
+    public String getEventName() {
+        return eventName;
+    }
+
+    public void setEventName(String eventName) {
+        this.eventName = eventName;
+    }
+
+    public Integer getEventId() {
+        return eventId;
+    }
+
+    public void setEventId(Integer eventId) {
+        this.eventId = eventId;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+
+
+
 
 
 
