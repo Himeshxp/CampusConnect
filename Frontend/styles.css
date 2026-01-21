@@ -96,6 +96,28 @@
   --easing-quick: cubic-bezier(.2,.9,.2,1);
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 8px;
+  border: 3px solid var(--background);
+  transition: background var(--transition-fast) var(--easing-quick);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--background);
+}
+
+/* General Transitions */
 body, .landing-page, .login-card, .role-card, .navbar, .data-table, .modal-content {
   transition: background-color var(--transition-fast) var(--easing-quick), color var(--transition-fast) var(--easing-quick), border-color var(--transition-fast) var(--easing-quick);
 }
@@ -128,8 +150,8 @@ body, .landing-page, .login-card, .role-card, .navbar, .data-table, .modal-conte
 }
 
 /* =======================
-   Material Icons Styling Fix
-   ======================= */
+Material Icons Styling Fix
+======================= */
 .material-icons-round {
   font-family: 'Material Icons Round';     /* Specify font-family for Material Icons */
   font-style: normal;
@@ -178,6 +200,11 @@ body, .landing-page, .login-card, .role-card, .navbar, .data-table, .modal-conte
   font-family: 'Poppins', sans-serif;
 }
 
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) var(--background);
+}
+
 body {
   font-family: 'Poppins', sans-serif;
   background-color: var(--background);
@@ -205,6 +232,7 @@ input, select, textarea {
 }
 
 .hidden { display: none !important; }
+.w-100 { width: 100%; }
 
 /* ========== Landing Page ========== */
 .landing-page {
@@ -227,7 +255,7 @@ input, select, textarea {
   gap: 0.75rem;
 }
 
-.logo-img {
+.logo-img, .navbar-logo {
   width: 0.5em;
   height: 0.5em;
   margin: 0 1em;
@@ -305,6 +333,7 @@ input, select, textarea {
   z-index: 9;
   pointer-events: none;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .hero-highlight::after {
@@ -480,7 +509,6 @@ input, select, textarea {
 }
 
 .login-container {
-  width: 100%;
   max-width: 28rem;
 }
 
@@ -576,6 +604,7 @@ input, select, textarea {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--foreground);
+  margin-top: 1em;
 }
 
 .input-icon-wrapper {
@@ -778,7 +807,6 @@ textarea::placeholder {
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 0.5rem;
-  background: var(--primary);
   color: var(--primary-foreground);
   display: flex;
   align-items: center;
@@ -874,7 +902,6 @@ textarea::placeholder {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--muted-foreground);
-  width: 100%;
   transition: all 0.2s;
 }
 
@@ -1055,7 +1082,6 @@ textarea::placeholder {
 
 .event-card {
   background: var(--card);
-  width: 100%;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 1.25rem;
@@ -1073,7 +1099,6 @@ textarea::placeholder {
   background-position: center;
   margin: 0.25em 0 1em 0;
   border-radius: var(--s-round);
-  width: 100%;
 }
 
 .event-card-header {
@@ -1153,6 +1178,7 @@ textarea::placeholder {
 .event-edit-form .form-group textarea {
   background-color: var(--accent);
   border: 2px solid var(--input);
+  color: var(--foreground);
   border-radius: var(--s-round);
   padding: 1em;
   font-weight: 100;
@@ -1168,14 +1194,16 @@ textarea::placeholder {
 .page-content {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  border: 2px solid var(--border);
+  padding: 2em;
+  border-radius: var(--s-round);
 }
 
 .page-header {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1em;
 }
 
 .page-header h1 {
@@ -1194,6 +1222,7 @@ textarea::placeholder {
   flex-direction: column;
   gap: 1rem;
   align-items: flex-start;
+  margin: 0 0 1em 0; /* margin bottom */
 }
 
 .filter-group {
@@ -1243,7 +1272,6 @@ textarea::placeholder {
 
 .search-input:focus ~ .search-icon {
   display: none;
-  padding-left: 1em !important;
 }
 
 /* ========== Tables ========== */
@@ -1256,7 +1284,6 @@ textarea::placeholder {
 }
 
 .data-table {
-  width: 100%;
   border-collapse: collapse;
 }
 
@@ -1338,7 +1365,6 @@ textarea::placeholder {
 .modal-content {
   background: var(--card);
   border-radius: 1rem;
-  width: 100%;
   max-width: 28rem;
   max-height: 90vh;
   overflow-y: auto;
@@ -1364,6 +1390,11 @@ textarea::placeholder {
 
 .modal-body {
   padding: 1.5rem;
+}
+
+#event-modal .modal-body input,
+#event-modal .modal-body textarea {
+  border-radius: var(--s-round);
 }
 
 .modal-footer {

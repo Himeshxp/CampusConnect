@@ -22,10 +22,6 @@ public class EventRegistration {
     public EventRegistration() {
     }
 
-    public String getEmail(String email) {
-        return this.email;
-    }
-
     public void setEmail(String email) {
         this.email = email;
     }

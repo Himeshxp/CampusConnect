@@ -348,48 +348,51 @@ let statsData = {};
 // selectedEventId stores the id of the event being edited in the "event-edit" page
 let selectedEventId = null;
 
-// ========== Theme Management ==========
-// Tracks current theme ('light' | 'dark'). Defaults to saved value or system preference.
-let currentTheme = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+// == Theme Management ==
 
-/*
-TODO: Change The Logo's Image Accordingly to the Theme, logo Image for darkmode = 'Campus-darkmode.png', and for light mode 'Campus.png'.
-? DOM img item => document.querySelector('.logo-img img')
-*/
+function getSavedTheme() {
+  return localStorage.getItem('theme') ||
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+
+function getLogoSrc(theme) {
+  return theme === 'dark' ? 'Campus-darkmode.png' : 'Campus.png';
+}
 
 function applyTheme(theme) {
-  currentTheme = theme === 'dark' ? 'dark' : 'light';
-  if (currentTheme === 'dark') {
-    // document.querySelector('.logo-img').setAttribute('src', )
+  const themeToApply = theme === 'dark' ? 'dark' : 'light';
+  const logoToApply = getLogoSrc(themeToApply);
+
+  // Update logo
+  const logoImg = document.querySelector('.logo-img img');
+  if (logoImg) {
+    logoImg.src = logoToApply;
   }
-  try {
-    document.documentElement.setAttribute('data-theme', currentTheme === 'dark' ? 'dark' : 'light');
-  } catch (e) {
-    console.warn('Could not apply theme attribute', e);
-  }
-  try {
-    localStorage.setItem('theme', currentTheme);
-  } catch (e) {
-    /* ignore */
-  }
-  // Update any theme icons that exist in the DOM (navbars, etc.)
-  const icons = document.querySelectorAll('.theme-toggle .material-icons-round');
-  icons.forEach(i => i.textContent = currentTheme === 'dark' ? 'dark_mode' : 'light_mode');
+
+  // Set theme
+  document.documentElement.setAttribute('data-theme', themeToApply);
+
+  // Persist
+  localStorage.setItem('theme', themeToApply);
+  localStorage.setItem('logo_src', logoToApply);
 }
 
 function toggleTheme() {
-  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+  const prevTheme = getSavedTheme();
+  const nextTheme = prevTheme === 'dark' ? 'light' : 'dark';
+  applyTheme(nextTheme);
 }
 
 function initTheme() {
-  applyTheme(currentTheme);
+  const saved = getSavedTheme();
+  window.currentTheme = saved;
+  applyTheme(saved);
 }
 
-// Initialize theme on load
-initTheme();
 
-// Ensure theme icons/text are correct once DOM is ready (covers inline template buttons)
-document.addEventListener('DOMContentLoaded', () => applyTheme(currentTheme));
+// Run only once, after DOM is fully loaded
+document.addEventListener('DOMContentLoaded', initTheme);
+
 
 // ========== Routing ==========
 function navigate(page) {
@@ -427,13 +430,6 @@ function icon(name) {
 }
 
 // ========== Eye Icon Functionality ==========
-
-// Issue: "Cannot read properties of undefined" or "Cannot read properties of null (reading 'addEventListener')" will occur
-// if document.querySelector('.eye-icon') returns null (i.e., there is no element with class 'eye-icon' in the DOM at this point).
-// The eye icon will only exist in the DOM after the login form is rendered, not on initial script execution.
-
-// Solution: Attach the event listener *after* the relevant DOM has loaded (typically after rendering the login form).
-// Example: run this after login form is added to DOM.
 
 function toggleVisibility(eyeicon) {
   const passwordInput = document.getElementById('password');
@@ -498,6 +494,10 @@ function renderNavbar(role, activePage) {
   // Ensure the theme icon in this cloned navbar reflects current theme
   const themeIconEl = nav.querySelector('.theme-toggle .material-icons-round');
   if (themeIconEl) themeIconEl.textContent = currentTheme === 'dark' ? 'dark_mode' : 'light_mode';
+
+  const navLogo = nav.querySelector('.logo-img img');
+  if (navLogo) navLogo.src = getLogoSrc(currentTheme);
+
   
   links.forEach(link => {
     const linkEl = document.createElement('a');
@@ -508,14 +508,14 @@ function renderNavbar(role, activePage) {
     linksContainer.appendChild(linkEl);
     
     const mobileLink = document.createElement('button');
-    mobileLink.className = `navbar-mobile-link ${activePage === link.page ? 'active' : ''}`;
+    mobileLink.className = `navbar-mobile-link w-100 ${activePage === link.page ? 'active' : ''}`;
     mobileLink.setAttribute('onclick', `navigate('${link.page}'); closeMobileNav();`);
     mobileLink.innerHTML = `${icon(link.icon)} ${link.label}`;
     mobileNav.appendChild(mobileLink);
   });
   
   const logoutBtn = document.createElement('button');
-  logoutBtn.className = 'navbar-mobile-link logout';
+  logoutBtn.className = 'navbar-mobile-link w-100 logout';
   logoutBtn.setAttribute('onclick', 'handleLogout()');
   logoutBtn.innerHTML = `${icon('logout')} Logout`;
   mobileNav.appendChild(logoutBtn);
@@ -685,7 +685,8 @@ async function handleStudentLogin(e) {
     if (result?.success) {
       currentUser = { id: result.id, email: result.email, name: result.name, role: result.role };
       authChecked = true;
-      navigate('student-dashboard');
+      localStorage.setItem('user', JSON.stringify(currentUser));
+      navigate('student-dashboard');      
       return;
     }
     alert(result?.message || 'Student login failed');
@@ -705,7 +706,8 @@ async function handleStaffLogin(e) {
     if (result?.success) {
       currentUser = { id: result.id, email: result.email, name: result.name, role: result.role };
       authChecked = true;
-      navigate('staff-dashboard');
+      localStorage.setItem('user', JSON.stringify(currentUser));
+      navigate('staff-dashboard');      
       return;
     }
     alert(result?.message || 'Staff login failed');
@@ -970,18 +972,38 @@ async function handleSubmitComplaint(e) {
 
 async function handleCreateEvent(e) {
   e.preventDefault();
+
+  const title = document.getElementById('event-title').value;
+  const date = document.getElementById('event-date').value;
+  const description = document.getElementById('event-description').value;
+  const imageFile = document.getElementById('event-image').files[0];
+
+  // Generate preview URL for UI use only
+  let imgsrc = "";
+  if (imageFile) {
+    imgsrc = URL.createObjectURL(imageFile);
+  }
+
   const data = {
-    title: document.getElementById('event-title').value,
-    date: document.getElementById('event-date').value,
-    description: document.getElementById('event-description').value,
-    image: document.getElementById('event-image').files[0],
+    title,
+    date,
+    description,
+    image: imageFile,
   };
-  
+
   try {
     const result = await createEvent(data);
+
     if (result?.success) {
-      // Reload from backend so the UI always reflects DB state.
-      eventsData = await getEvents();
+      // Backend event (JSON-only)
+      const uiEvent = result.event;
+
+      // Add image only for client-side use
+      uiEvent.imgsrc = imgsrc;
+
+      // Keep the UI in sync
+      eventsData.push(uiEvent);
+
       closeEventModal();
       renderStaffEventsTable();
       alert('Event created successfully!');
@@ -993,6 +1015,7 @@ async function handleCreateEvent(e) {
     alert(err?.message || 'Failed to create event');
   }
 }
+
 
 async function handleRegisterEvent(eventId) {
   const event = eventsData.find(e => e.id === eventId);
@@ -1129,9 +1152,9 @@ function renderEventsList() {
   }
 
   container.innerHTML = filtered.map(event => `
-    <div class="event-card">
+    <div class="event-card w-100">
     <img 
-      class="event-card-image" 
+      class="event-card-image w-100" 
       src="${getImageSrc(event.imgsrc)}"
       onerror="this.onerror=null; this.src='fallback.webp';"
       alt="Event Image" 
@@ -1173,9 +1196,9 @@ function renderUpcomingEvents() {
 
   // EVENT CARD GENERATOR
   container.innerHTML = upcoming.map(event => `
-    <div class="event-card">
+    <div class="event-card w-100">
     <img 
-      class="event-card-image"
+      class="event-card-image w-100"
       src="${getImageSrc(event.imgsrc)}"
       onerror="this.onerror=null; this.src='fallback.webp';"
       alt="Event Image"
@@ -1263,7 +1286,7 @@ function renderStaffEventsTable() {
   
   tbody.innerHTML = eventsData.map(event => `
     <tr>
-      <td><img src="${getImageSrc(event.imgsrc)}" height="100" alt="event image"></td>
+      <td><img src="${getImageSrc(event.imgsrc)}" height="100" alt="event image" style="border-radius: var(--s-round);"></td>
       <td>${event.title}</td>
       <td>${event.date}</td>
       <td>
@@ -1534,10 +1557,31 @@ async function render() {
     default:
       app.appendChild(renderNotFound());
   }
+
+  // Reapply theme to newly inserted templates
+  applyTheme(getSavedTheme());
 }
 
 // ========== Initialize ==========
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // try restoring local user
+  try {
+    const saved = localStorage.getItem('user');
+    if (saved) {
+      currentUser = JSON.parse(saved);
+      authChecked = true;
+    }
+  } catch (e) {}
+
+  // If no saved user, fallback to server session
+  if (!currentUser) {
+    await ensureCurrentUser();
+    if (currentUser) {
+      localStorage.setItem('user', JSON.stringify(currentUser)); // keep it synced
+    }
+  }
+
   currentPage = getPageFromHash();
   render();
 });
+

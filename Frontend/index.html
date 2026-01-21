@@ -74,7 +74,7 @@
       <button class="theme-toggle theme-toggle-left" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
         <span class="material-icons-round">light_mode</span>
       </button>
-      <div class="login-container">
+      <div class="login-container w-100">
         <a href="#" class="login-back" onclick="navigate('landing'); return false;">
           <span class="material-icons-round">arrow_back</span> Back to Home
         </a>
@@ -89,18 +89,18 @@
               <label for="email">Email</label>
               <div class="input-icon-wrapper">
                 <span class="input-icon"><span class="material-icons-round">mail</span></span>
-                <input type="email" id="email" placeholder="Enter your email" required>
+                <input type="email" id="email" placeholder="Enter your email" autocomplete="email" required>
               </div>
             </div>
             <div class="form-group">
               <label for="password">Password</label>
               <div class="input-icon-wrapper">
                 <span class="input-icon"><span class="material-icons-round">lock</span></span>
-                <input type="password" id="password" placeholder="Enter your password" required>
+                <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
                 <span class="eye-icon" onclick="toggleVisibility(this)"><span class="material-icons-round">visibility</span></span>
               </div>
             </div>
-            <button type="submit" class="btn btn-student btn-full">Login</button>
+            <button type="submit" class="btn btn-student w-100">Login</button>
           </form>
         </div>
       </div>
@@ -113,7 +113,7 @@
       <button class="theme-toggle theme-toggle-left" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
         <span class="material-icons-round">light_mode</span>
       </button>
-      <div class="login-container">
+      <div class="login-container w-100">
         <a href="#" class="login-back" onclick="navigate('landing'); return false;">
           <span class="material-icons-round">arrow_back</span> Back to Home
         </a>
@@ -128,18 +128,18 @@
               <label for="email">Email</label>
               <div class="input-icon-wrapper">
                 <span class="input-icon"><span class="material-icons-round">mail</span></span>
-                <input type="email" id="email" placeholder="Enter your email" required>
+                <input type="email" id="email" placeholder="Enter your email" autocomplete="email" required>
               </div>
             </div>
             <div class="form-group">
               <label for="password">Password</label>
               <div class="input-icon-wrapper">
                 <span class="input-icon"><span class="material-icons-round">lock</span></span>
-                <input type="password" id="password" placeholder="Enter your password" required>
+                <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
                 <span class="eye-icon" onclick="toggleVisibility(this)"><span class="material-icons-round">visibility</span></span>
               </div>
             </div>
-            <button type="submit" class="btn btn-staff btn-full">Login</button>
+            <button type="submit" class="btn btn-staff w-100">Login</button>
           </form>
         </div>
       </div>
@@ -150,9 +150,11 @@
     <nav class="navbar">
       <div class="navbar-container">
         <a href="#" class="navbar-brand" data-nav-brand>
-          <div class="navbar-logo">CC</div>
+          <div class="navbar-logo logo-img">
+            <img src="Campus.png" alt="Logo" width="100" height="auto">
+          </div>
           <span class="navbar-title">Campus Connect</span>
-        </a>
+        </a>  
         <div class="navbar-links" data-nav-links></div>
         <div class="navbar-actions">
           <span class="navbar-user" data-nav-user></span>
@@ -260,7 +262,7 @@
             </div>
             
             <div class="table-container">
-              <table class="data-table">
+              <table class="data-table w-100">
                 <thead>
                   <tr>
                     <th>Title</th>
@@ -278,7 +280,7 @@
       </main>
     </div>
     <div id="complaint-modal" class="modal-overlay hidden" onclick="closeModal(event, 'complaint-modal')">
-      <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-content w-100" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h2>Submit New Complaint</h2>
           <p>Describe your issue in detail</p>
@@ -344,7 +346,7 @@
 
             <!-- Modal for confirming registration -->
             <div id="event-register-modal" class="modal-overlay hidden" onclick="closeRegisterModal(event)">
-              <div class="modal-content" onclick="event.stopPropagation()">
+              <div class="modal-content w-100" onclick="event.stopPropagation()">
                 <div class="modal-header">
                   <h2>Register for Event</h2>
                 </div>
@@ -458,8 +460,8 @@
             
             <div class="search-section">
               <div class="search-input-wrapper">
-                <span class="search-icon"><span class="material-icons-round">search</span></span>
                 <input type="text" class="search-input" id="complaint-search" placeholder="Search complaints..." oninput="filterStaffComplaints()">
+                <span class="search-icon"><span class="material-icons-round">search</span></span>
               </div>
             </div>
             
@@ -487,7 +489,7 @@
             </div>
             
             <div class="table-container">
-              <table class="data-table">
+              <table class="data-table w-100">
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -507,13 +509,13 @@
       </main>
     </div>
     <div id="details-modal" class="modal-overlay hidden" onclick="closeModal(event, 'details-modal')">
-      <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-content w-100" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h2>Complaint Details</h2>
         </div>
         <div class="modal-body" id="complaint-details"></div>
         <div class="modal-footer">
-          <button class="btn btn-outline" onclick="closeDetailsModal()">Close</button>
+          <button class="btn btn-outline w-100" onclick="closeDetailsModal()">Close</button>
         </div>
       </div>
     </div>
@@ -538,7 +540,7 @@
             </div>
             
             <div class="table-container">
-              <table class="data-table">
+              <table class="data-table w-100">
                 <thead>
                   <tr>
                     <th>Event Image</th>
@@ -556,7 +558,7 @@
       </main>
     </div>
     <div id="event-modal" class="modal-overlay hidden" onclick="closeModal(event, 'event-modal')">
-      <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-content w-100" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h2>Create New Event</h2>
           <p>Fill in the event details</p>
@@ -580,9 +582,9 @@
               <input type="file" id="event-image" accept="image/*">
             </div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-outline" onclick="closeEventModal()">Cancel</button>
-            <button type="submit" class="btn btn-staff">Create Event</button>
+          <div class="modal-footer" style="margin-top: 1em;">
+            <button type="button" class="btn btn-outline w-100" onclick="closeEventModal()">Cancel</button>
+            <button type="submit" class="btn btn-staff w-100">Create Event</button>
           </div>
         </form>
       </div>
@@ -657,7 +659,7 @@
 
   <!-- Rating Modal (top-level so both students and staff can open it) -->
   <div id="rating-modal" class="modal-overlay hidden" onclick="closeModal(event, 'rating-modal')">
-    <div class="modal-content" onclick="event.stopPropagation()" style="max-width:640px;">
+    <div class="modal-content w-100" onclick="event.stopPropagation()" style="max-width:640px;">
       <div class="modal-header">
         <h2>Rate this complaint</h2>
         <p style="color:var(--muted-foreground); margin-top:0.25rem;">Only available for resolved complaints</p>
