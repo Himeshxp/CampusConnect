@@ -654,6 +654,13 @@
   <!-- Configure backend API base URL here (no trailing slash). -->
   <!-- Example for local dev: http://localhost:8080 -->
   <script>
+    // Auto-redirect from 127.0.0.1 to localhost to ensure session cookies work
+    // Browsers treat localhost and 127.0.0.1 as different origins, which causes
+    // SameSite=Lax cookies to not be sent with POST/DELETE requests
+    if (window.location.hostname === '127.0.0.1') {
+      const localhostUrl = window.location.href.replace('127.0.0.1', 'localhost');
+      window.location.replace(localhostUrl);
+    }
     window.CAMPUSCONNECT_API_BASE = "http://localhost:8080";
   </script>
 

@@ -12,6 +12,9 @@
 const API_BASE = `${String(window.CAMPUSCONNECT_API_BASE || 'http://localhost:8080').replace(/\/+$/, '')}/`;
 
 async function fetchJson(url, options = {}) {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:14',message:'fetchJson called',data:{url,method:options.method||'GET',hasCredentials:true,isRegistrationEndpoint:url.includes('/events/register/')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   const res = await fetch(url, {
     headers: {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
@@ -21,6 +24,10 @@ async function fetchJson(url, options = {}) {
     credentials: "include",
     ...options,
   });
+
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:25',message:'fetchJson response received',data:{url,status:res.status,statusText:res.statusText,ok:res.ok,isRegistrationEndpoint:url.includes('/events/register/')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
 
   // Some endpoints may return empty body; handle safely.
   const text = await res.text();
@@ -32,6 +39,9 @@ async function fetchJson(url, options = {}) {
   }
 
   if (!res.ok) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:34',message:'fetchJson error response',data:{url,status:res.status,data,isRegistrationEndpoint:url.includes('/events/register/')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     const msg =
       (data && typeof data === "object" && (data.message || data.error)) ||
       (typeof data === "string" && data) ||
@@ -228,32 +238,174 @@ async function updateComplaintStatus(id, status) {
 
 // Events APIs
 async function getEvents() {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:230',message:'getEvents called',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null,hasCurrentUser:!!currentUser,currentPage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
   try {
     const list = await fetchJson(`${API_BASE}api/events/all`, { method: "GET" });
     if (!Array.isArray(list)) return [];
-    return list.map(mapBackendEventToUi);
+    
+    // Map backend events to UI format
+    let events = list.map(mapBackendEventToUi);
+    
+    // Fetch registration counts from database
+    const registrationCounts = await getRegistrationCounts();
+    
+    // Fetch student's registered events if logged in as student
+    let myRegisteredEventIds = [];
+    if (currentUser && currentUser.role === 'student') {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:243',message:'calling getMyRegisteredEvents in getEvents',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      myRegisteredEventIds = await getMyRegisteredEvents();
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:245',message:'getMyRegisteredEvents returned',data:{myRegisteredEventIds,count:myRegisteredEventIds.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+    } else {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:248',message:'skipping getMyRegisteredEvents',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null,reason:!currentUser?'no currentUser':currentUser.role!=='student'?'not student':'unknown'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+    }
+    
+    // Merge registration counts and registration status into events
+    events = events.map(event => {
+      const eventIdStr = String(event.id);
+      const count = registrationCounts[eventIdStr] || 0;
+      const isRegistered = myRegisteredEventIds.includes(event.id);
+      
+      return {
+        ...event,
+        registrations: count,
+        registered: isRegistered
+      };
+    });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:260',message:'getEvents returning',data:{eventsCount:events.length,registeredCount:events.filter(e=>e.registered).length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    return events;
   } catch (err) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:262',message:'getEvents error',data:{errorMessage:err.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     console.error("Failed to load events from backend", err);
     return [];
   }
 }
 
 async function registerForEvent(eventId) {
-  // TODO: Replace with actual API endpoint
-  console.log('Register for event:', eventId);
-  return { success: true };
-  // return fetch(`${API_BASE}/events/${eventId}/register`, {
-  //   method: 'POST'
-  // }).then(res => res.json());
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:267',message:'registerForEvent called',data:{eventId,currentUser:currentUser?{id:currentUser.id,role:currentUser.role,name:currentUser.name}:null,hasCurrentUser:!!currentUser},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  
+  // Ensure we have a valid session before attempting registration
+  if (!currentUser) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:270',message:'currentUser is null, calling ensureCurrentUser',data:{eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    await ensureCurrentUser();
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:273',message:'after ensureCurrentUser',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null,hasCurrentUser:!!currentUser},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    if (!currentUser) {
+      throw new Error('Not logged in. Please log in to register for events.');
+    }
+  }
+  
+  try {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:277',message:'calling fetchJson for registration',data:{eventId,url:`${API_BASE}api/events/register/${eventId}`,currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    const result = await fetchJson(`${API_BASE}api/events/register/${eventId}`, {
+      method: 'POST'
+    });
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:281',message:'registration API success',data:{eventId,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    return result;
+  } catch (err) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:283',message:'registration API error',data:{eventId,errorMessage:err.message,errorStack:err.stack,is401:err.message&&(err.message.includes('Not logged in')||err.message.includes('401'))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    console.error('Failed to register for event', err);
+    // If 401, try to refresh auth and throw a clearer error
+    if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:286',message:'401 error detected, refreshing auth',data:{eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      // Refresh auth state
+      await ensureCurrentUser();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+    throw err;
+  }
 }
 
 async function unregisterForEvent(eventId) {
-  // TODO: Replace with actual API endpoint
-  console.log('Unregister for event:', eventId);
-  return { success: true };
-  // return fetch(`${API_BASE}/events/${eventId}/unregister`, {
-  //   method: 'POST'
-  // }).then(res => res.json());
+  // Ensure we have a valid session before attempting unregistration
+  if (!currentUser) {
+    await ensureCurrentUser();
+    if (!currentUser) {
+      throw new Error('Not logged in. Please log in to unregister from events.');
+    }
+  }
+  
+  try {
+    const result = await fetchJson(`${API_BASE}api/events/register/${eventId}`, {
+      method: 'DELETE'
+    });
+    return result;
+  } catch (err) {
+    console.error('Failed to unregister from event', err);
+    // If 401, try to refresh auth and throw a clearer error
+    if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
+      // Refresh auth state
+      await ensureCurrentUser();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+    throw err;
+  }
+}
+
+// Get registration counts for all events from database
+async function getRegistrationCounts() {
+  try {
+    const counts = await fetchJson(`${API_BASE}api/events/register/counts`, {
+      method: 'GET'
+    });
+    return counts || {};
+  } catch (err) {
+    console.error('Failed to get registration counts', err);
+    return {};
+  }
+}
+
+// Get list of event IDs the current student is registered for
+async function getMyRegisteredEvents() {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:333',message:'getMyRegisteredEvents called',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null,hasCurrentUser:!!currentUser},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  try {
+    const eventIds = await fetchJson(`${API_BASE}api/events/register/student/me`, {
+      method: 'GET'
+    });
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:338',message:'getMyRegisteredEvents success',data:{eventIds,count:Array.isArray(eventIds)?eventIds.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    return Array.isArray(eventIds) ? eventIds : [];
+  } catch (err) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:342',message:'getMyRegisteredEvents error',data:{errorMessage:err.message,is401:err.message&&(err.message.includes('Not logged in')||err.message.includes('401')),currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    // If 401, user might not be logged in or session expired - return empty array
+    // This is expected for non-students or when not logged in
+    if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
+      console.warn('Not logged in or not a student - cannot get registered events');
+      return [];
+    }
+    console.error('Failed to get registered events', err);
+    return [];
+  }
 }
 
 async function createEvent(data) {
@@ -299,11 +451,20 @@ async function updateEventApi(eventId, data) {
 
 // Stats APIs
 async function getStudentStats() {
-  // TODO: Replace with actual API endpoint
+  // Get actual registered events count from database
+  let eventsRegistered = 0;
+  try {
+    const registeredEventIds = await getMyRegisteredEvents();
+    eventsRegistered = Array.isArray(registeredEventIds) ? registeredEventIds.length : 0;
+  } catch (err) {
+    console.warn('Failed to get registered events count for stats', err);
+  }
+  
+  // TODO: Replace complaints stats with actual API endpoint
   return {
     totalComplaints: 3,
     pendingComplaints: 1,
-    eventsRegistered: 2,
+    eventsRegistered: eventsRegistered,
   };
   // return fetch(`${API_BASE}/student/stats`).then(res => res.json());
 }
@@ -812,6 +973,127 @@ function closeEventModal() {
   document.getElementById('event-modal').classList.add('hidden');
 }
 
+// Store the event ID for registration modal
+let pendingRegistrationEventId = null;
+
+async function openRegisterModal(eventId) {
+  // Ensure user is authenticated before opening modal
+  if (!currentUser) {
+    await ensureCurrentUser();
+    if (!currentUser) {
+      alert('Please log in to register for events');
+      navigate('student-login');
+      return;
+    }
+  }
+  
+  // Check if user is a student
+  if (currentUser.role !== 'student') {
+    alert('Only students can register for events');
+    return;
+  }
+  
+  const event = eventsData.find(e => e.id === eventId);
+  if (!event) {
+    alert('Event not found');
+    return;
+  }
+  
+  pendingRegistrationEventId = eventId;
+  
+  // Populate modal with event and student info
+  const eventNameEl = document.getElementById('register-event-name');
+  const studentInfoEl = document.getElementById('register-student-info');
+  
+  if (eventNameEl) {
+    eventNameEl.textContent = event.title;
+  }
+  
+  if (studentInfoEl && currentUser) {
+    studentInfoEl.innerHTML = `
+      <div style="margin-top: 0.5rem;">
+        <div><strong>Name:</strong> ${currentUser.name || 'N/A'}</div>
+        <div><strong>Email:</strong> ${currentUser.email || 'N/A'}</div>
+      </div>
+    `;
+  }
+  
+  const modal = document.getElementById('event-register-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+  }
+}
+
+function closeRegisterModal(e) {
+  if (e && e.target.classList.contains('modal-overlay')) {
+    document.getElementById('event-register-modal').classList.add('hidden');
+    pendingRegistrationEventId = null;
+  } else {
+    document.getElementById('event-register-modal').classList.add('hidden');
+    pendingRegistrationEventId = null;
+  }
+}
+
+async function handleEventRegisterSubmit(e) {
+  e.preventDefault();
+  
+  // Ensure user is authenticated
+  if (!currentUser) {
+    await ensureCurrentUser();
+    if (!currentUser) {
+      alert('Please log in to register for events');
+      closeRegisterModal();
+      navigate('student-login');
+      return;
+    }
+  }
+  
+  // Check if user is a student
+  if (currentUser.role !== 'student') {
+    alert('Only students can register for events');
+    closeRegisterModal();
+    return;
+  }
+  
+  if (!pendingRegistrationEventId) {
+    alert('No event selected for registration');
+    return;
+  }
+  
+  const eventId = pendingRegistrationEventId;
+  
+  try {
+    const result = await registerForEvent(eventId);
+    
+    if (result?.success) {
+      // Close modal
+      closeRegisterModal();
+      
+      // Refresh events data from database (this will update counts and registration status)
+      eventsData = await getEvents();
+      
+      // Re-render the events list and upcoming events
+      renderEventsList();
+      renderUpcomingEvents();
+      
+      alert(result.message || 'Successfully registered for event!');
+    } else {
+      alert(result?.message || 'Failed to register for event');
+    }
+  } catch (err) {
+    console.error('Registration failed', err);
+    // Handle 401 specifically
+    if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
+      alert('Your session has expired. Please log in again.');
+      closeRegisterModal();
+      await handleLogout();
+      navigate('student-login');
+    } else {
+      alert(err?.message || 'Failed to register for event. Please try again.');
+    }
+  }
+}
+
 function openDetailsModal(complaint) {
   const details = document.getElementById('complaint-details');
   details.innerHTML = `
@@ -1056,29 +1338,77 @@ async function handleCreateEvent(e) {
 
 
 async function handleRegisterEvent(eventId) {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:1280',message:'handleRegisterEvent called',data:{eventId,currentUser:currentUser?{id:currentUser.id,role:currentUser.role,name:currentUser.name}:null,hasCurrentUser:!!currentUser,currentPage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
+  
+  // Ensure user is authenticated
+  if (!currentUser) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:1283',message:'currentUser is null in handleRegisterEvent',data:{eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    // Try to refresh auth state
+    await ensureCurrentUser();
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:1286',message:'after ensureCurrentUser in handleRegisterEvent',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null,hasCurrentUser:!!currentUser},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    if (!currentUser) {
+      alert('Please log in to register for events');
+      navigate('student-login');
+      return;
+    }
+  }
+  
+  // Check if user is a student
+  if (currentUser.role !== 'student') {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:1293',message:'user is not a student',data:{role:currentUser.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    alert('Only students can register for events');
+    return;
+  }
+  
   const event = eventsData.find(e => e.id === eventId);
-  if (!event) return;
+  if (!event) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:1298',message:'event not found in eventsData',data:{eventId,eventsDataLength:eventsData.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    alert('Event not found');
+    return;
+  }
   
   if (event.registered) {
-    // Unregister
-    const result = await unregisterForEvent(eventId);
-    if (result.success) {
-      event.registered = false;
-      if (event.registrations > 0) {
-        event.registrations--;
+    // Unregister - direct action, no modal needed
+    if (confirm('Are you sure you want to unregister from this event?')) {
+      try {
+        const result = await unregisterForEvent(eventId);
+        if (result?.success) {
+          // Refresh events data from database
+          eventsData = await getEvents();
+          
+          // Re-render the events list and upcoming events
+          renderEventsList();
+          renderUpcomingEvents();
+          
+          alert(result.message || 'Successfully unregistered from event!');
+        } else {
+          alert(result?.message || 'Failed to unregister from event');
+        }
+      } catch (err) {
+        console.error('Unregistration failed', err);
+        // Handle 401 specifically
+        if (err.message && err.message.includes('Not logged in')) {
+          alert('Your session has expired. Please log in again.');
+          await handleLogout();
+          navigate('student-login');
+        } else {
+          alert(err?.message || 'Failed to unregister from event. Please try again.');
+        }
       }
-      renderEventsList();
-      renderUpcomingEvents();
     }
   } else {
-    // Register
-    const result = await registerForEvent(eventId);
-    if (result.success) {
-      event.registered = true;
-      event.registrations++;
-      renderEventsList();
-      renderUpcomingEvents();
-    }
+    // Register - open modal for confirmation
+    openRegisterModal(eventId);
   }
 }
 
