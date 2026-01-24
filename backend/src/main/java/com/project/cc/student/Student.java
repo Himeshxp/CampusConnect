@@ -1,5 +1,6 @@
 package com.project.cc.student;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -20,6 +21,7 @@ public class Student {
     private String firstName;
     private String lastName;
     private String email;
+    @JsonIgnore
     private String password;
     private String role="STUDENT";
     public Student(String firstName, String lastName, String email, String password, String role) {
