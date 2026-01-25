@@ -4,9 +4,9 @@ import com.project.cc.student.Student;
 import jakarta.persistence.*;
 import com.project.cc.ComplaintStatus;
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
 @Data
 @Entity
@@ -22,9 +22,12 @@ public class Complaints {
     private ComplaintStatus complaintStatus=ComplaintStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "student_id")
     private Student student;
     // Many complaints by a single student
-    private LocalDateTime createdAt=LocalDateTime.now();
+    
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime createdAt = LocalDateTime.now();
     public Complaints() {}
 
     public Complaints(int id, String title, String description) {
@@ -51,11 +54,11 @@ public class Complaints {
         this.title = title;
     }
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 

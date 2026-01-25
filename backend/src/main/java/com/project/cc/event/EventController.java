@@ -1,7 +1,5 @@
 package com.project.cc.event;
 
-
-import com.project.cc.complaint.ComplaintService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +12,6 @@ import java.util.List;
 public class EventController {
     @Autowired
     private EventRepo eventrepo;
-    @Autowired
-    private ComplaintService complaintService;
-
 
     public EventController(EventRepo eventrepo) {
         this.eventrepo = eventrepo;

@@ -5,10 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import lombok.Data;
 
 @Data
@@ -23,6 +19,8 @@ public class Student {
     private String email;
     @JsonIgnore
     private String password;
+    // TODO: SECURITY BUG - Passwords should be hashed using BCrypt or similar
+    // Current implementation stores passwords in plain text which is a major security vulnerability
     private String role="STUDENT";
     public Student(String firstName, String lastName, String email, String password, String role) {
         this.firstName = firstName;
@@ -34,11 +32,11 @@ public class Student {
     public Student() {
     }
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 

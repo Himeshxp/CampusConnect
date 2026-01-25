@@ -1115,11 +1115,35 @@ textarea::placeholder {
 
 .event-card-image {
   display: block;
-  aspect-ratio: auto;
-  object-fit: contain;
+  aspect-ratio: 1 / 1; /* Perfect square aspect ratio */
+  object-fit: cover; /* Crop to fit square while maintaining aspect ratio */
+  object-position: center; /* Center the image when cropping */
   background-position: center;
   margin: 0.25em 0 1em 0;
   border-radius: var(--s-round);
+  width: 100%;
+  height: auto;
+  /* Ensure consistent sizing across different devices */
+  max-width: 100%;
+  min-height: 200px; /* Minimum height for better visual consistency */
+  /* Fallback background for loading/error states */
+  background-color: var(--muted);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .event-card-image {
+    min-height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .event-card-image {
+    min-height: 120px;
+  }
 }
 
 .event-card-header {

@@ -22,11 +22,11 @@ public class Event {
     public Event() {
     }
 
-    public Event(Integer id, String eventName, String eventDescription) {
+    public Event(Integer id, String eventName, String eventDescription, String eventDate) {
         this.id = id;
         this.eventName = eventName;
         this.eventDescription = eventDescription;
-        this.eventDate = new Date().toString();
+        this.eventDate = eventDate;
     }
 
 
@@ -52,6 +52,14 @@ public class Event {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public String getEventDate() {
+        return eventDate;
+    }
+
+    public void setEventDate(String eventDate) {
+        this.eventDate = eventDate;
     }
 
 

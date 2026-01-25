@@ -27,7 +27,7 @@
         </div>
       </header>
       
-      <main class="landing-hero">
+      <main class="landing-hero"> 
         <div class="hero-content">
           <h1 class="hero-title">
             Welcome to<br>
@@ -630,8 +630,11 @@
                   <textarea id="event-edit-description" rows="5" required></textarea>
                 </div>
                 <div class="form-group">
-                  <label for="event-edit-image">Image URL</label>
-                  <input type="url" id="event-edit-image" placeholder="https://..." />
+                  <label for="event-edit-image">Image (Optional)</label>
+                  <input type="file" id="event-edit-image" accept="image/*" />
+                  <small style="color: var(--muted-foreground); font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                    Choose a new image file to update the event image
+                  </small>
                 </div>
                 <div class="form-group">
                   <label for="event-edit-registrations">Registrations</label>

@@ -12,9 +12,6 @@
 const API_BASE = `${String(window.CAMPUSCONNECT_API_BASE || 'http://localhost:8080').replace(/\/+$/, '')}/`;
 
 async function fetchJson(url, options = {}) {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:14',message:'fetchJson called',data:{url,method:options.method||'GET',hasCredentials:true,isRegistrationEndpoint:url.includes('/events/register/')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   const res = await fetch(url, {
     headers: {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
@@ -24,10 +21,6 @@ async function fetchJson(url, options = {}) {
     credentials: "include",
     ...options,
   });
-
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:25',message:'fetchJson response received',data:{url,status:res.status,statusText:res.statusText,ok:res.ok,isRegistrationEndpoint:url.includes('/events/register/')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
 
   // Some endpoints may return empty body; handle safely.
   const text = await res.text();
@@ -39,9 +32,6 @@ async function fetchJson(url, options = {}) {
   }
 
   if (!res.ok) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:34',message:'fetchJson error response',data:{url,status:res.status,data,isRegistrationEndpoint:url.includes('/events/register/')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const msg =
       (data && typeof data === "object" && (data.message || data.error)) ||
       (typeof data === "string" && data) ||
@@ -84,8 +74,8 @@ function mapBackendEventToUi(ev) {
     title: ev?.eventName || "",
     description: ev?.eventDescription || "",
     date: toDateInputValue(ev?.eventDate),
-    // Backend image/registrations not implemented yet.
-    imgsrc: "",
+    // Check for stored image in localStorage, fallback to empty string
+    imgsrc: getStoredEventImage(ev?.id) || "",
     registered: false,
     registrations: 0,
   };
@@ -142,105 +132,111 @@ async function getMe() {
 
 // Complaints APIs
 async function getComplaints() {
-  // Read complaints from localStorage if available so student feedback/rating persists in the demo.
   try {
-    const stored = localStorage.getItem('complaintsData');
-    if (stored) return JSON.parse(stored);
-  } catch (e) {
-    console.warn('Could not read complaints from localStorage', e);
+    const response = await fetchJson(`${API_BASE}api/complaint/mycomplaints`, { method: "GET" });
+    return Array.isArray(response) ? response.map(mapBackendComplaintToUi) : [];
+  } catch (err) {
+    console.error("Failed to load complaints from backend", err);
+    // If 401, user might not be logged in - return empty array
+    if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
+      console.warn('Not logged in or not a student - cannot get complaints');
+      return [];
+    }
+    return [];
   }
-
-  // Fallback to defaults (will be initialized by getAllComplaints on staff side)
-  return [
-    { id: 1, title: 'Library AC not working', category: 'Facilities', status: 'Pending', date: '2025-01-10', description: 'The air conditioning in the main library has been broken for 3 days.' },
-    { id: 2, title: 'WiFi connectivity issues', category: 'IT', status: 'In-progress', date: '2025-01-08', description: 'Intermittent WiFi drops in Block B.' },
-    { id: 3, title: 'Cafeteria food quality', category: 'Food', status: 'Resolved', date: '2025-01-05', description: 'Food quality has been declining.' },
-  ];
-  // return fetch(`${API_BASE}/complaints`).then(res => res.json());
 }
 
 async function getAllComplaints() {
-  // For demo: persist complaints to localStorage so ratings/feedback survive reloads.
   try {
-    const stored = localStorage.getItem('complaintsData');
-    if (stored) return JSON.parse(stored);
-  } catch (e) {
-    console.warn('Could not read complaints from localStorage', e);
+    const response = await fetchJson(`${API_BASE}api/complaint/all`, { method: "GET" });
+    return Array.isArray(response) ? response.map(mapBackendComplaintToUi) : [];
+  } catch (err) {
+    console.error("Failed to load all complaints from backend", err);
+    return [];
   }
+}
 
-  const defaults = [
-    { id: 1, title: 'Library AC not working', category: 'Facilities', status: 'Pending', date: '2025-01-10', studentName: 'John Doe', description: 'The AC is broken.', rated: false },
-    { id: 2, title: 'WiFi connectivity issues', category: 'IT', status: 'In-progress', date: '2025-01-08', studentName: 'Jane Smith', description: 'WiFi keeps dropping.', rated: false },
-    { id: 3, title: 'Cafeteria food quality', category: 'Food', status: 'Resolved', date: '2025-01-05', studentName: 'Mike Johnson', description: 'Food quality issue.', rated: false },
-    { id: 4, title: 'Broken desk in Room 201', category: 'Facilities', status: 'Pending', date: '2025-01-12', studentName: 'Sarah Wilson', description: 'Desk is wobbly.', rated: false },
-  ];
+function mapBackendComplaintToUi(complaint) {
+  return {
+    id: complaint?.id,
+    title: complaint?.title || "",
+    category: complaint?.category || "",
+    description: complaint?.description || "",
+    status: mapBackendStatusToUi(complaint?.complaintStatus),
+    date: formatBackendDate(complaint?.createdAt),
+    studentName: complaint?.student ? `${complaint.student.firstName || ''} ${complaint.student.lastName || ''}`.trim() : 'N/A',
+    rated: false // This would need to be implemented in backend if needed
+  };
+}
 
-  try { localStorage.setItem('complaintsData', JSON.stringify(defaults)); } catch (e) { /* ignore */ }
-  return defaults;
-  // return fetch(`${API_BASE}/staff/complaints`).then(res => res.json());
+function mapBackendStatusToUi(backendStatus) {
+  switch (backendStatus) {
+    case 'PENDING': return 'Pending';
+    case 'IN_PROGRESS': return 'In-progress';
+    case 'RESOLVED': return 'Resolved';
+    default: return 'Pending';
+  }
+}
+
+function mapUiStatusToBackend(uiStatus) {
+  switch (uiStatus) {
+    case 'Pending': return 'PENDING';
+    case 'In-progress': return 'IN_PROGRESS';
+    case 'Resolved': return 'RESOLVED';
+    default: return 'PENDING';
+  }
+}
+
+function formatBackendDate(dateTime) {
+  if (!dateTime) return new Date().toISOString().split('T')[0];
+  try {
+    const date = new Date(dateTime);
+    return date.toISOString().split('T')[0];
+  } catch (e) {
+    return new Date().toISOString().split('T')[0];
+  }
 }
 
 async function submitComplaint(data) {
-  // Demo implementation: assign a small incremental id (based on stored complaints)
-  console.log('Submit complaint:', data);
   try {
-    const raw = localStorage.getItem('complaintsData');
-    let stored = [];
-    if (raw) {
-      try { stored = JSON.parse(raw) || []; } catch (e) { stored = []; }
-    }
-    const ids = stored.map(c => Number(c.id)).filter(n => Number.isFinite(n));
-    const maxId = ids.length ? Math.max(...ids) : 0;
-    const nextId = maxId + 1;
-    return { success: true, id: nextId };
+    const payload = {
+      title: data.title,
+      category: data.category,
+      description: data.description
+    };
+    
+    const result = await fetchJson(`${API_BASE}api/complaint/add`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    
+    return result;
   } catch (err) {
-    console.warn('Could not determine next complaint id, falling back to timestamp', err);
-    return { success: true, id: Date.now() };
+    console.error('Failed to submit complaint', err);
+    throw err;
   }
-  // const formData = new FormData();
-  // Object.entries(data).forEach(([key, value]) => formData.append(key, value));
-  // return fetch(`${API_BASE}/complaints`, {
-  //   method: 'POST',
-  //   body: formData
-  // }).then(res => res.json());
 }
 
 async function updateComplaintStatus(id, status) {
-  // For demo: update the stored complaintsData in localStorage so students see status changes.
-  console.log('Update complaint status:', { id, status });
   try {
-    // Try to load stored complaints (fall back to in-memory complaintsData)
-    let stored = [];
-    try {
-      const raw = localStorage.getItem('complaintsData');
-      stored = raw ? JSON.parse(raw) : (Array.isArray(complaintsData) ? complaintsData : []);
-    } catch (e) {
-      stored = Array.isArray(complaintsData) ? complaintsData : [];
-    }
-
-    const idx = stored.findIndex(c => c.id === id);
-    if (idx !== -1) {
-      stored[idx].status = status;
-      // persist
-      try { localStorage.setItem('complaintsData', JSON.stringify(stored)); } catch (e) { console.warn('Could not persist complaints to localStorage', e); }
-      // update in-memory copy
-      if (Array.isArray(complaintsData)) {
-        const mem = complaintsData.find(c => c.id === id);
-        if (mem) mem.status = status;
-      }
-      return { success: true };
-    }
+    const payload = {
+      status: mapUiStatusToBackend(status)
+    };
+    
+    const result = await fetchJson(`${API_BASE}api/complaint/status/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    
+    return result;
   } catch (err) {
-    console.warn('Failed updating complaint status in storage', err);
+    console.error('Failed to update complaint status', err);
+    throw err;
   }
-  return { success: false };
 }
 
 // Events APIs
 async function getEvents() {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:230',message:'getEvents called',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null,hasCurrentUser:!!currentUser,currentPage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
   try {
     const list = await fetchJson(`${API_BASE}api/events/all`, { method: "GET" });
     if (!Array.isArray(list)) return [];
@@ -254,17 +250,7 @@ async function getEvents() {
     // Fetch student's registered events if logged in as student
     let myRegisteredEventIds = [];
     if (currentUser && currentUser.role === 'student') {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:243',message:'calling getMyRegisteredEvents in getEvents',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       myRegisteredEventIds = await getMyRegisteredEvents();
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:245',message:'getMyRegisteredEvents returned',data:{myRegisteredEventIds,count:myRegisteredEventIds.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-    } else {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:248',message:'skipping getMyRegisteredEvents',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null,reason:!currentUser?'no currentUser':currentUser.role!=='student'?'not student':'unknown'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
     }
     
     // Merge registration counts and registration status into events
@@ -280,59 +266,31 @@ async function getEvents() {
       };
     });
     
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:260',message:'getEvents returning',data:{eventsCount:events.length,registeredCount:events.filter(e=>e.registered).length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     return events;
   } catch (err) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:262',message:'getEvents error',data:{errorMessage:err.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     console.error("Failed to load events from backend", err);
     return [];
   }
 }
 
 async function registerForEvent(eventId) {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:267',message:'registerForEvent called',data:{eventId,currentUser:currentUser?{id:currentUser.id,role:currentUser.role,name:currentUser.name}:null,hasCurrentUser:!!currentUser},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-  
   // Ensure we have a valid session before attempting registration
   if (!currentUser) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:270',message:'currentUser is null, calling ensureCurrentUser',data:{eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     await ensureCurrentUser();
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:273',message:'after ensureCurrentUser',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null,hasCurrentUser:!!currentUser},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     if (!currentUser) {
       throw new Error('Not logged in. Please log in to register for events.');
     }
   }
   
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:277',message:'calling fetchJson for registration',data:{eventId,url:`${API_BASE}api/events/register/${eventId}`,currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const result = await fetchJson(`${API_BASE}api/events/register/${eventId}`, {
       method: 'POST'
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:281',message:'registration API success',data:{eventId,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     return result;
   } catch (err) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:283',message:'registration API error',data:{eventId,errorMessage:err.message,errorStack:err.stack,is401:err.message&&(err.message.includes('Not logged in')||err.message.includes('401'))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     console.error('Failed to register for event', err);
     // If 401, try to refresh auth and throw a clearer error
     if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:286',message:'401 error detected, refreshing auth',data:{eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       // Refresh auth state
       await ensureCurrentUser();
       throw new Error('Your session has expired. Please log in again.');
@@ -382,21 +340,12 @@ async function getRegistrationCounts() {
 
 // Get list of event IDs the current student is registered for
 async function getMyRegisteredEvents() {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:333',message:'getMyRegisteredEvents called',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null,hasCurrentUser:!!currentUser},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
   try {
     const eventIds = await fetchJson(`${API_BASE}api/events/register/student/me`, {
       method: 'GET'
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:338',message:'getMyRegisteredEvents success',data:{eventIds,count:Array.isArray(eventIds)?eventIds.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     return Array.isArray(eventIds) ? eventIds : [];
   } catch (err) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:342',message:'getMyRegisteredEvents error',data:{errorMessage:err.message,is401:err.message&&(err.message.includes('Not logged in')||err.message.includes('401')),currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     // If 401, user might not be logged in or session expired - return empty array
     // This is expected for non-students or when not logged in
     if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
@@ -430,10 +379,6 @@ async function deleteEvent(eventId) {
   return { success: true };
 }
 
-async function updateEvent(eventId) {
-    openEventModal(eventId)
-}
-
 async function updateEventApi(eventId, data) {
   const payload = {
     eventName: data?.title || "",
@@ -460,22 +405,46 @@ async function getStudentStats() {
     console.warn('Failed to get registered events count for stats', err);
   }
   
-  // TODO: Replace complaints stats with actual API endpoint
+  // Get actual complaints count from database
+  let totalComplaints = 0;
+  let pendingComplaints = 0;
+  try {
+    const complaints = await getComplaints();
+    totalComplaints = complaints.length;
+    pendingComplaints = complaints.filter(c => c.status === 'Pending').length;
+  } catch (err) {
+    console.warn('Failed to get complaints count for stats', err);
+  }
+  
   return {
-    totalComplaints: 3,
-    pendingComplaints: 1,
+    totalComplaints: totalComplaints,
+    pendingComplaints: pendingComplaints,
     eventsRegistered: eventsRegistered,
   };
-  // return fetch(`${API_BASE}/student/stats`).then(res => res.json());
 }
 
 async function getStaffStats() {
-  // Complaints stats are still demo values, but events counts are pulled from backend so dashboards stay accurate.
+  // Get actual complaints stats from database
+  let totalComplaints = 0;
+  let pendingComplaints = 0;
+  let inProgressComplaints = 0;
+  let resolvedComplaints = 0;
+  
+  try {
+    const complaints = await getAllComplaints();
+    totalComplaints = complaints.length;
+    pendingComplaints = complaints.filter(c => c.status === 'Pending').length;
+    inProgressComplaints = complaints.filter(c => c.status === 'In-progress').length;
+    resolvedComplaints = complaints.filter(c => c.status === 'Resolved').length;
+  } catch (err) {
+    console.warn('Failed to get complaints stats', err);
+  }
+
   const base = {
-    totalComplaints: 15,
-    pendingComplaints: 5,
-    inProgressComplaints: 4,
-    resolvedComplaints: 6,
+    totalComplaints: totalComplaints,
+    pendingComplaints: pendingComplaints,
+    inProgressComplaints: inProgressComplaints,
+    resolvedComplaints: resolvedComplaints,
     totalEvents: 0,
     upcomingEvents: 0,
   };
@@ -966,11 +935,69 @@ function closeComplaintModal() {
 }
 
 function openEventModal() {
-  document.getElementById('event-modal').classList.remove('hidden');
+  const modal = document.getElementById('event-modal');
+  modal.classList.remove('hidden');
+  
+  // Add image preview functionality for create event modal
+  const imageInput = document.getElementById('event-image');
+  if (imageInput) {
+    // Remove any existing event listeners to avoid duplicates
+    const newImageInput = imageInput.cloneNode(true);
+    imageInput.parentNode.replaceChild(newImageInput, imageInput);
+    
+    // Add event listener for image preview
+    newImageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      let previewContainer = document.getElementById('create-image-preview-container');
+      
+      // Create preview container if it doesn't exist
+      if (!previewContainer) {
+        previewContainer = document.createElement('div');
+        previewContainer.id = 'create-image-preview-container';
+        previewContainer.style.marginTop = '0.5rem';
+        newImageInput.parentNode.appendChild(previewContainer);
+      }
+      
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewContainer.innerHTML = `
+            <div style="font-size: 0.75rem; color: var(--muted-foreground); margin-bottom: 0.25rem;">Image preview:</div>
+            <img src="${e.target.result}" alt="Event image preview" 
+                 style="
+                   width: 120px; 
+                   height: 120px; 
+                   object-fit: cover; 
+                   object-position: center; 
+                   border-radius: var(--s-round); 
+                   border: 1px solid var(--border);
+                 " />
+          `;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Clear preview if no file selected
+        previewContainer.innerHTML = '';
+      }
+    });
+  }
 }
 
 function closeEventModal() {
-  document.getElementById('event-modal').classList.add('hidden');
+  const modal = document.getElementById('event-modal');
+  modal.classList.add('hidden');
+  
+  // Reset form and clear image preview
+  const form = modal.querySelector('form');
+  if (form) {
+    form.reset();
+  }
+  
+  // Clear image preview
+  const previewContainer = document.getElementById('create-image-preview-container');
+  if (previewContainer) {
+    previewContainer.innerHTML = '';
+  }
 }
 
 // Store the event ID for registration modal
@@ -1227,14 +1254,12 @@ async function handleSubmitRating(e) {
     return;
   }
 
-  // save rating data
+  // Note: Rating functionality would need to be implemented in backend
+  // For now, just update local state
   complaint.rated = true;
   complaint.rating = rating;
   complaint.feedbackText = comment;
   complaint.feedbackTags = tags;
-
-  // persist
-  try { localStorage.setItem('complaintsData', JSON.stringify(complaintsData)); } catch (err) { console.warn(err); }
 
   closeRatingModal();
   // Re-render the appropriate complaints table depending on current page
@@ -1255,38 +1280,71 @@ async function handleSubmitComplaint(e) {
     title: document.getElementById('complaint-title').value,
     category: document.getElementById('complaint-category').value,
     description: document.getElementById('complaint-description').value,
-    file: document.getElementById('complaint-file').files[0],
+    file: document.getElementById('complaint-file').files[0], // Note: file upload not implemented in backend yet
   };
   
-  const result = await submitComplaint(data);
-  if (result.success) {
-    const newComplaint = {
-      id: result.id,
-      title: data.title,
-      category: data.category,
-      description: data.description,
-      status: 'Pending',
-      date: new Date().toISOString().split('T')[0],
-      studentName: currentUser?.name || 'Student',
-      rated: false,
-    };
-
-    // update in-memory list
-    complaintsData.push(newComplaint);
-
-    // persist so staff can see it as well
-    try {
-      const raw = localStorage.getItem('complaintsData');
-      const stored = raw ? JSON.parse(raw) : [];
-      stored.push(newComplaint);
-      localStorage.setItem('complaintsData', JSON.stringify(stored));
-    } catch (err) {
-      console.warn('Could not persist new complaint to localStorage', err);
+  try {
+    const result = await submitComplaint(data);
+    if (result.success) {
+      closeComplaintModal();
+      
+      // Refresh complaints data from database
+      complaintsData = await getComplaints();
+      
+      // Re-render the complaints table
+      renderComplaintsTable();
+      
+      alert(result.message || 'Complaint submitted successfully!');
+      
+      // Clear form
+      document.getElementById('complaint-title').value = '';
+      document.getElementById('complaint-category').value = '';
+      document.getElementById('complaint-description').value = '';
+      document.getElementById('complaint-file').value = '';
+    } else {
+      alert(result.message || 'Failed to submit complaint');
     }
+  } catch (err) {
+    console.error('Submit complaint failed', err);
+    if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
+      alert('Your session has expired. Please log in again.');
+      await handleLogout();
+      navigate('student-login');
+    } else {
+      alert(err?.message || 'Failed to submit complaint. Please try again.');
+    }
+  }
+}
 
-    closeComplaintModal();
-    renderComplaintsTable();
-    alert('Complaint submitted successfully!');
+// Helper function to convert file to base64
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+// Store event image in localStorage
+function storeEventImage(eventId, base64Data) {
+  try {
+    const eventImages = JSON.parse(localStorage.getItem('eventImages') || '{}');
+    eventImages[eventId] = base64Data;
+    localStorage.setItem('eventImages', JSON.stringify(eventImages));
+  } catch (err) {
+    console.warn('Could not store event image:', err);
+  }
+}
+
+// Retrieve event image from localStorage
+function getStoredEventImage(eventId) {
+  try {
+    const eventImages = JSON.parse(localStorage.getItem('eventImages') || '{}');
+    return eventImages[eventId] || null;
+  } catch (err) {
+    console.warn('Could not retrieve event image:', err);
+    return null;
   }
 }
 
@@ -1298,10 +1356,20 @@ async function handleCreateEvent(e) {
   const description = document.getElementById('event-description').value;
   const imageFile = document.getElementById('event-image').files[0];
 
-  // Generate preview URL for UI use only
+  // Generate preview URL and store image data for persistence
   let imgsrc = "";
   if (imageFile) {
+    // Create object URL for immediate use
     imgsrc = URL.createObjectURL(imageFile);
+    
+    // Convert image to base64 for localStorage persistence
+    try {
+      const base64 = await fileToBase64(imageFile);
+      // We'll store this with the event ID after creation
+      window.pendingEventImage = base64;
+    } catch (err) {
+      console.warn('Could not convert image to base64:', err);
+    }
   }
 
   const data = {
@@ -1318,8 +1386,14 @@ async function handleCreateEvent(e) {
       // Backend event (JSON-only)
       const uiEvent = result.event;
 
-      // Add image only for client-side use
+      // Add image for client-side use
       uiEvent.imgsrc = imgsrc;
+
+      // Store image in localStorage if we have one
+      if (window.pendingEventImage && result.id) {
+        storeEventImage(result.id, window.pendingEventImage);
+        delete window.pendingEventImage;
+      }
 
       // Keep the UI in sync
       eventsData.push(uiEvent);
@@ -1338,20 +1412,10 @@ async function handleCreateEvent(e) {
 
 
 async function handleRegisterEvent(eventId) {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:1280',message:'handleRegisterEvent called',data:{eventId,currentUser:currentUser?{id:currentUser.id,role:currentUser.role,name:currentUser.name}:null,hasCurrentUser:!!currentUser,currentPage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
-  
   // Ensure user is authenticated
   if (!currentUser) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:1283',message:'currentUser is null in handleRegisterEvent',data:{eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     // Try to refresh auth state
     await ensureCurrentUser();
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:1286',message:'after ensureCurrentUser in handleRegisterEvent',data:{currentUser:currentUser?{id:currentUser.id,role:currentUser.role}:null,hasCurrentUser:!!currentUser},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     if (!currentUser) {
       alert('Please log in to register for events');
       navigate('student-login');
@@ -1361,18 +1425,12 @@ async function handleRegisterEvent(eventId) {
   
   // Check if user is a student
   if (currentUser.role !== 'student') {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:1293',message:'user is not a student',data:{role:currentUser.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     alert('Only students can register for events');
     return;
   }
   
   const event = eventsData.find(e => e.id === eventId);
   if (!event) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/94290e16-d05c-4cf9-b51a-319be0c8f64e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:1298',message:'event not found in eventsData',data:{eventId,eventsDataLength:eventsData.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     alert('Event not found');
     return;
   }
@@ -1413,11 +1471,28 @@ async function handleRegisterEvent(eventId) {
 }
 
 async function handleUpdateStatus(id, status) {
-  const result = await updateComplaintStatus(id, status);
-  if (result.success) {
-    const complaint = complaintsData.find(c => c.id === id);
-    if (complaint) complaint.status = status;
-    renderStaffComplaintsTable();
+  try {
+    const result = await updateComplaintStatus(id, status);
+    if (result.success) {
+      // Refresh complaints data from database
+      complaintsData = await getAllComplaints();
+      
+      // Re-render the staff complaints table
+      renderStaffComplaintsTable();
+      
+      alert(result.message || 'Complaint status updated successfully!');
+    } else {
+      alert(result.message || 'Failed to update complaint status');
+    }
+  } catch (err) {
+    console.error('Update status failed', err);
+    if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
+      alert('Your session has expired. Please log in again.');
+      await handleLogout();
+      navigate('staff-login');
+    } else {
+      alert(err?.message || 'Failed to update complaint status. Please try again.');
+    }
   }
 }
 
@@ -1434,10 +1509,6 @@ async function handleDeleteEvent(eventId) {
       alert(err?.message || 'Failed to delete event');
     }
   }
-}
-
-async function handleUpdateEvent(eventId) {
-    updateEventTable(eventId);
 }
 
 function filterComplaints() {
@@ -1524,7 +1595,7 @@ function renderEventsList() {
     <img 
       class="event-card-image w-100" 
       src="${getImageSrc(event.imgsrc)}"
-      onerror="this.onerror=null; this.src='fallback.webp';"
+      onerror="this.onerror=null; this.src='images/fallback.webp';"
       alt="Event Image" 
       width="100%"
     />
@@ -1553,14 +1624,16 @@ function renderEventsList() {
 // Upcoming events cards also use eventsData (subset of first 3 items).
 function renderUpcomingEvents() {
   const container = document.getElementById('upcoming-events');
-  if (!container) return;
+  if (!container) {
+    return;
+  }
   
-  const upcoming = eventsData.slice(0, 3);
-  
-  if (upcoming.length === 0) {
+  if (!Array.isArray(eventsData) || eventsData.length === 0) {
     container.innerHTML = '<div class="empty-state">No upcoming events</div>';
     return;
   }
+  
+  const upcoming = eventsData.slice(0, 3);
 
   // EVENT CARD GENERATOR
   container.innerHTML = upcoming.map(event => `
@@ -1568,7 +1641,7 @@ function renderUpcomingEvents() {
     <img 
       class="event-card-image w-100"
       src="${getImageSrc(event.imgsrc)}"
-      onerror="this.onerror=null; this.src='fallback.webp';"
+      onerror="this.onerror=null; this.src='images/fallback.webp';"
       alt="Event Image"
       width="100%"
       style="height: auto;"
@@ -1587,7 +1660,7 @@ function renderUpcomingEvents() {
           ${icon('people')} ${event.registrations} registered
         </div>
         ${event.registered 
-          ? `<button class="btn btn-primary btn-sm unregister-btn" onclick="handleRegisterEvent(${event.id})">Unregister</button>`
+          ? `<button class="btn btn-primary btn-sm unregister-btn" onclick="handleRegisterEvent(${event.id})">Unregister</button>` 
           : `<button class="btn btn-primary btn-sm register-btn" onclick="handleRegisterEvent(${event.id})">Register</button>`
         }
       </div>
@@ -1654,7 +1727,21 @@ function renderStaffEventsTable() {
   
   tbody.innerHTML = eventsData.map(event => `
     <tr>
-      <td><img src="${getImageSrc(event.imgsrc)}" height="100" alt="event image" style="border-radius: var(--s-round);"></td>
+      <td>
+        <img 
+          src="${getImageSrc(event.imgsrc)}" 
+          alt="event image" 
+          style="
+            width: 80px; 
+            height: 80px; 
+            object-fit: cover; 
+            object-position: center; 
+            border-radius: var(--s-round);
+            display: block;
+          "
+          onerror="this.onerror=null; this.src='images/fallback.webp';"
+        />
+      </td>
       <td>${event.title}</td>
       <td>${event.date}</td>
       <td>
@@ -1674,10 +1761,6 @@ function renderStaffEventsTable() {
       </td>
     </tr>
   `).join('');
-}
-
-function updateEventModal() {
-
 }
 
 // Called when user clicks the edit button in the staff events table.
@@ -1712,8 +1795,73 @@ function renderEventEdit() {
     if (titleEl) titleEl.value = event.title || '';
     if (dateEl) dateEl.value = event.date || '';
     if (descEl) descEl.value = event.description || '';
-    if (imgEl) imgEl.value = event.imgsrc || '';
     if (regEl) regEl.value = event.registrations || 0;
+    
+    // For file input, we can't set the value, but we can show current image preview
+    if (imgEl) {
+      // Create container for image preview
+      const previewContainer = document.createElement('div');
+      previewContainer.id = 'image-preview-container';
+      previewContainer.style.marginTop = '0.5rem';
+      
+      if (event.imgsrc) {
+        previewContainer.innerHTML = `
+          <div style="font-size: 0.75rem; color: var(--muted-foreground); margin-bottom: 0.25rem;">Current image:</div>
+          <img id="current-image-preview" src="${event.imgsrc}" alt="Current event image" 
+               style="
+                 width: 120px; 
+                 height: 120px; 
+                 object-fit: cover; 
+                 object-position: center; 
+                 border-radius: var(--s-round); 
+                 border: 1px solid var(--border);
+               " 
+               onerror="this.style.display='none';" />
+        `;
+      }
+      
+      imgEl.parentNode.appendChild(previewContainer);
+      
+      // Add event listener for new file selection
+      imgEl.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const previewContainer = document.getElementById('image-preview-container');
+        
+        if (file && previewContainer) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            previewContainer.innerHTML = `
+              <div style="font-size: 0.75rem; color: var(--muted-foreground); margin-bottom: 0.25rem;">New image preview:</div>
+              <img src="${e.target.result}" alt="New event image preview" 
+                   style="
+                     width: 120px; 
+                     height: 120px; 
+                     object-fit: cover; 
+                     object-position: center; 
+                     border-radius: var(--s-round); 
+                     border: 1px solid var(--border);
+                   " />
+            `;
+          };
+          reader.readAsDataURL(file);
+        } else if (!file && previewContainer && event.imgsrc) {
+          // Restore original image if file selection is cleared
+          previewContainer.innerHTML = `
+            <div style="font-size: 0.75rem; color: var(--muted-foreground); margin-bottom: 0.25rem;">Current image:</div>
+            <img src="${event.imgsrc}" alt="Current event image" 
+                 style="
+                   width: 120px; 
+                   height: 120px; 
+                   object-fit: cover; 
+                   object-position: center; 
+                   border-radius: var(--s-round); 
+                   border: 1px solid var(--border);
+                 " 
+                 onerror="this.style.display='none';" />
+          `;
+        }
+      });
+    }
   } catch (err) {
     console.warn('Could not populate event edit fields on clone', err);
   }
@@ -1732,8 +1880,9 @@ async function handleSaveEditedEvent(e) {
   const title = document.getElementById('event-edit-title').value.trim();
   const date = document.getElementById('event-edit-date').value;
   const description = document.getElementById('event-edit-description').value.trim();
-  const imgsrc = document.getElementById('event-edit-image').value.trim();
+  const imageFile = document.getElementById('event-edit-image').files[0];
   const registrationsInput = document.getElementById('event-edit-registrations')?.value;
+  
   // Parse registrations as integer, default to 0 and ensure non-negative
   let registrations = 0;
   if (registrationsInput !== undefined && registrationsInput !== null && String(registrationsInput).trim() !== '') {
@@ -1746,6 +1895,21 @@ async function handleSaveEditedEvent(e) {
   if (!ev) {
     alert('Event not found');
     return;
+  }
+
+  // Handle image update
+  let imgsrc = ev.imgsrc; // Keep existing image by default
+  if (imageFile) {
+    // Generate new preview URL
+    imgsrc = URL.createObjectURL(imageFile);
+    
+    // Convert and store new image
+    try {
+      const base64 = await fileToBase64(imageFile);
+      storeEventImage(selectedEventId, base64);
+    } catch (err) {
+      console.warn('Could not convert image to base64:', err);
+    }
   }
 
   try {
@@ -1877,7 +2041,10 @@ async function render() {
       statsData = await getStudentStats();
       eventsData = await getEvents(); // <- This populates the cards shown via renderUpcomingEvents()
       app.appendChild(renderStudentDashboard());
-      renderUpcomingEvents();
+      // Use requestAnimationFrame to ensure DOM is ready before rendering upcoming events
+      requestAnimationFrame(() => {
+        renderUpcomingEvents();
+      });
       break;
     case 'student-complaints':
       complaintsData = await getComplaints();
