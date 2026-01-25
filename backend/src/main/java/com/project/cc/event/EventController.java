@@ -10,59 +10,42 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/events")
 public class EventController {
-    @Autowired
-    private EventRepo eventrepo;
 
-    public EventController(EventRepo eventrepo) {
-        this.eventrepo = eventrepo;
+    private EventService eventService;
+
+    public EventController(EventService eventService) {
+        this.eventService = eventService;
     }
 
     //creating event
     @PostMapping("/add")
-    private ResponseEntity<?> addEvent(@RequestBody Event event){
-      Event saved=eventrepo.save(event);
-      return new ResponseEntity<>(saved, HttpStatus.OK);
+   public ResponseEntity<?> addEvent(@RequestBody Event event){
+   return eventService.addEvent(event);
     }
 
     //fetching events
     @GetMapping("/all")
-    private List<Event> getAllEvents()
+    public List<?> getAllEvents()
     {
-        return eventrepo.findAll();
+        return eventService.getAllEvents();
     }
 
     //fetching by id
     @GetMapping("/{id}")
-    private ResponseEntity<?> getEventById(@PathVariable Integer id)
+    public ResponseEntity<?> getEventById(@PathVariable Integer id)
     {
-        return eventrepo.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
+        return eventService.getEventById(id);
     }
 
     //deleting by id
     @DeleteMapping("/{id}")
-    private ResponseEntity<?> deleteEventById(@PathVariable Integer id)
-    {
-        if(!eventrepo.existsById(id))
-        {
-            return ResponseEntity.notFound().build();
-        }
-        eventrepo.deleteById(id);
-        return ResponseEntity.ok("Event deleted successfully");
+    public ResponseEntity<?> deleteEventById(@PathVariable Integer id) {
+        return eventService.deleteEventById(id);
     }
-
     // EDIT/UPDATE EVENT
     @PutMapping("/update/{id}")
-    public ResponseEntity<?> updateEvent(@PathVariable Integer id, @RequestBody Event eventdata)
-    {
-        return eventrepo.findById(id).map(event ->{
-            //updating the fields
-            event.setEventName(eventdata.getEventName());
-            event.setEventDescription(eventdata.getEventDescription());
-            event.setEventDate(eventdata.getEventDate());
-            Event updated=eventrepo.save(event);
-            return ResponseEntity.ok(updated);
-
-        }).orElse(ResponseEntity.status(404).body(null));
+    public ResponseEntity<?> updateEvent(@PathVariable Integer id, @RequestBody Event eventdata) {
+        return eventService.updateEvent(id, eventdata);
     }
 
 
