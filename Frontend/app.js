@@ -7,9 +7,39 @@
 // - The appropriate data rendering function (such as renderEventsList() or renderUpcomingEvents()) then uses eventsData to generate HTML for each card, mapping each event object to a block of HTML.
 // - These HTML blocks are inserted into containers in the DOM, such as those with id="events-list" or id="upcoming-events" (see renderEventsList and renderUpcomingEvents below).
 // See more inline explanations in the relevant functions below.
-// Prefer API base configured in `index.html` (window.CAMPUSCONNECT_API_BASE).
+// Prefer API base configured in `index.html` (window.CAMPUSCONNECT_API_BASE) or in `.env` (REACT_APP_API_URL).
 // Always normalize to exactly one trailing slash so we can safely do `${API_BASE}api/...`.
-const API_BASE = `${String(window.CAMPUSCONNECT_API_BASE || 'http://localhost:8080').replace(/\/+$/, '')}/`;
+let API_BASE = 'http://localhost:8080/';
+
+function normalizeApiBase(raw) {
+  const s = String(raw || '').replace(/\/+$/, '');
+  return s ? `${s}/` : '';
+}
+
+async function initApiBase() {
+  // 1) If index.html sets window.CAMPUSCONNECT_API_BASE, use that.
+  if (window.CAMPUSCONNECT_API_BASE) {
+    API_BASE = normalizeApiBase(window.CAMPUSCONNECT_API_BASE);
+    return;
+  }
+
+  // 2) Otherwise, try to read REACT_APP_API_URL from the .env file (served as a static file).
+  try {
+    const res = await fetch('.env', { cache: 'no-store' });
+    if (!res.ok) return;
+    const text = await res.text();
+    const match = text.match(/^REACT_APP_API_URL=(.+)$/m);
+    if (match && match[1]) {
+      API_BASE = normalizeApiBase(match[1].trim());
+      return;
+    }
+  } catch (e) {
+    // If .env is missing or unreadable, silently fall back to the default.
+  }
+
+  // 3) Fall back to the default if nothing else worked.
+  API_BASE = normalizeApiBase(API_BASE);
+}
 
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, {
@@ -2099,6 +2129,9 @@ async function render() {
 
 // ========== Initialize ==========
 document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize API_BASE from index.html or .env before doing anything that calls the backend.
+  await initApiBase();
+
   // try restoring local user
   try {
     const saved = localStorage.getItem('user');
