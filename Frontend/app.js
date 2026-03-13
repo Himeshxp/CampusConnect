@@ -9,7 +9,7 @@
 // See more inline explanations in the relevant functions below.
 // Prefer API base configured in `index.html` (window.CAMPUSCONNECT_API_BASE) or in `.env` (REACT_APP_API_URL).
 // Always normalize to exactly one trailing slash so we can safely do `${API_BASE}api/...`.
-let API_BASE = 'http://localhost:8080/';
+let API_BASE = 'https://firstdeployment-xvjt.onrender.com';
 
 function normalizeApiBase(raw) {
   const s = String(raw || '').replace(/\/+$/, '');
@@ -66,6 +66,7 @@ async function fetchJson(url, options = {}) {
       (data && typeof data === "object" && (data.message || data.error)) ||
       (typeof data === "string" && data) ||
       `Request failed (${res.status})`;
+
     throw new Error(msg);
   }
 
