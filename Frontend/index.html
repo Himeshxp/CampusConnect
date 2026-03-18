@@ -37,6 +37,7 @@
 <body>
 
   <div id="app"></div>
+  <div id="toast-container" role="status" aria-live="polite"></div>
 
   <!-- Templates -->
   <template id="template-landing">
@@ -126,7 +127,7 @@
                 <span class="eye-icon" onclick="toggleVisibility(this)"><span class="material-icons-round">visibility</span></span>
               </div>
             </div>
-            <button type="submit" class="btn btn-student w-100 login-btn">Login</button>
+            <button type="submit" class="btn btn-student w-100 login-btn" id="login-buttons">Login</button>
           </form>
         </div>
       </div>
@@ -165,7 +166,7 @@
                 <span class="eye-icon" onclick="toggleVisibility(this)"><span class="material-icons-round">visibility</span></span>
               </div>
             </div>
-            <button type="submit" class="btn btn-staff w-100 login-btn">Login</button>
+            <button type="submit" class="btn btn-staff w-100 login-btn" id="login-buttons">Login</button>
           </form>
         </div>
       </div>
