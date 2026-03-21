@@ -67,6 +67,32 @@ async function fetchJson(url, options = {}) {
       (typeof data === "string" && data) ||
       `Request failed (${res.status})`;
 
+    // #region agent log
+    fetch('http://127.0.0.1:7652/ingest/eb05b2db-ec66-4479-af8a-eb199c54b7a5', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '96b9c0',
+      },
+      body: JSON.stringify({
+        sessionId: '96b9c0',
+        runId: 'complaint-run',
+        hypothesisId: 'H2',
+        location: 'app.js:64',
+        message: 'fetchJson non-ok response',
+        data: {
+          url,
+          status: res.status,
+          statusText: res.statusText,
+          responseBodyPreview: typeof data === 'string'
+            ? data.slice(0, 200)
+            : (data && (data.message || data.error)) || null,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
+
     throw new Error(msg);
   }
 
@@ -601,22 +627,6 @@ function toggleVisibility(eyeicon) {
   : eyeicon.firstElementChild.textContent = 'visibility'
 }
 
-// function to show toast takes two arguments
-function showToast(message, type = 'toast-success') {
-    const toastContainer = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.classList.add('toast', type);
-    toast.innerHTML = `<i class="material-icons-round info-icon" aria-hidden="true">info</i> ${message}`
-    toastContainer.appendChild(toast);
-    void toast.offsetWidth;
-    toast.classList.add('slide-in');
-    setTimeout(() => {
-        toast.classList.remove('slide-in');
-        toast.classList.add('slide-out');
-        toast.addEventListener('transitionend', () => toast.remove());
-    }, 3500);
-}
-
 // ========== Template Helper ==========
 function cloneTemplate(templateId) {
   const template = document.getElementById(`template-${templateId}`);
@@ -901,14 +911,13 @@ async function handleStudentLogin(e) {
       currentUser = { id: result.id, email: result.email, name: result.name, role: result.role };
       authChecked = true;
       localStorage.setItem('user', JSON.stringify(currentUser));
-      showToast("Student Login Successful!");
-      navigate('student-dashboard');    
+      navigate('student-dashboard');      
       return;
     }
-    showToast(result?.message || "Student Login Failed!", "toast-failed")
+    alert(result?.message || 'Student login failed');
   } catch (err) {
     console.error('Student login failed', err);
-    showToast("Student Login Failed!", "toast-failed")
+    alert('Student login failed');
   }
 }
 
@@ -926,10 +935,10 @@ async function handleStaffLogin(e) {
       navigate('staff-dashboard');      
       return;
     }
-    showToast(result?.message || 'Staff login failed', "toast-failed");
+    alert(result?.message || 'Staff login failed');
   } catch (err) {
     console.error('Staff login failed', err);
-    showToast('Staff login failed', "toast-failed");
+    alert('Staff login failed');
   }
 }
 
@@ -1056,7 +1065,7 @@ async function openRegisterModal(eventId) {
   if (!currentUser) {
     await ensureCurrentUser();
     if (!currentUser) {
-      showToast('Please log in to register for events', "toast-alert");
+      alert('Please log in to register for events');
       navigate('student-login');
       return;
     }
@@ -1064,13 +1073,13 @@ async function openRegisterModal(eventId) {
   
   // Check if user is a student
   if (currentUser.role !== 'student') {
-    showToast('Only students can register for events', "toast-alert");
+    alert('Only students can register for events');
     return;
   }
   
   const event = eventsData.find(e => e.id === eventId);
   if (!event) {
-    showToast('Event not found', "toast-alert");
+    alert('Event not found');
     return;
   }
   
@@ -1116,7 +1125,7 @@ async function handleEventRegisterSubmit(e) {
   if (!currentUser) {
     await ensureCurrentUser();
     if (!currentUser) {
-      showToast('Please log in to register for events', "toast-alert");
+      alert('Please log in to register for events');
       closeRegisterModal();
       navigate('student-login');
       return;
@@ -1125,13 +1134,13 @@ async function handleEventRegisterSubmit(e) {
   
   // Check if user is a student
   if (currentUser.role !== 'student') {
-    showToast('Only students can register for events', "toast-alert");
+    alert('Only students can register for events');
     closeRegisterModal();
     return;
   }
   
   if (!pendingRegistrationEventId) {
-    showToast('No event selected for registration', "toast-alert");
+    alert('No event selected for registration');
     return;
   }
   
@@ -1151,20 +1160,20 @@ async function handleEventRegisterSubmit(e) {
       renderEventsList();
       renderUpcomingEvents();
       
-      showToast(result.message || 'Successfully registered for event!');
+      alert(result.message || 'Successfully registered for event!');
     } else {
-      showToast(result?.message || 'Failed to register for event', "toast-failed");
+      alert(result?.message || 'Failed to register for event');
     }
   } catch (err) {
     console.error('Registration failed', err);
     // Handle 401 specifically
     if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
-      showToast('Your session has expired. Please log in again.', "toast-alert");
+      alert('Your session has expired. Please log in again.');
       closeRegisterModal();
       await handleLogout();
       navigate('student-login');
     } else {
-      showToast(err?.message || 'Failed to register for event. Please try again.', "toast-failed");
+      alert(err?.message || 'Failed to register for event. Please try again.');
     }
   }
 }
@@ -1222,7 +1231,7 @@ let ratingState = {
 function openRatingModal(complaintId) {
   // Only students can submit ratings
   if (currentUser?.role !== 'student') {
-    showToast('Only students can submit feedback for complaints.', "toast-alert");
+    alert('Only students can submit feedback for complaints.');
     return;
   }
 
@@ -1298,7 +1307,7 @@ async function handleSubmitRating(e) {
 
   const complaint = complaintsData.find(c => c.id === ratingState.complaintId);
   if (!complaint) {
-    showToast('Complaint not found', "toast-alert");
+    alert('Complaint not found');
     return;
   }
 
@@ -1313,7 +1322,7 @@ async function handleSubmitRating(e) {
   // Re-render the appropriate complaints table depending on current page
   if (currentPage === 'staff-complaints') renderStaffComplaintsTable();
   if (currentPage === 'student-complaints') renderComplaintsTable();
-  showToast('Thanks for your feedback');
+  alert('Thanks for your feedback');
 }
 
 function closeModal(e, modalId) {
@@ -1332,6 +1341,31 @@ async function handleSubmitComplaint(e) {
   };
   
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7652/ingest/eb05b2db-ec66-4479-af8a-eb199c54b7a5', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '96b9c0',
+      },
+      body: JSON.stringify({
+        sessionId: '96b9c0',
+        runId: 'complaint-run',
+        hypothesisId: 'H1',
+        location: 'app.js:1411',
+        message: 'handleSubmitComplaint before API call',
+        data: {
+          API_BASE,
+          hasCurrentUser: !!currentUser,
+          currentUserRole: currentUser?.role || null,
+          title: data.title,
+          category: data.category,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
+
     const result = await submitComplaint(data);
     if (result.success) {
       closeComplaintModal();
@@ -1342,7 +1376,7 @@ async function handleSubmitComplaint(e) {
       // Re-render the complaints table
       renderComplaintsTable();
       
-      showToast(result.message || 'Complaint submitted successfully!');
+      alert(result.message || 'Complaint submitted successfully!');
       
       // Clear form
       document.getElementById('complaint-title').value = '';
@@ -1350,16 +1384,16 @@ async function handleSubmitComplaint(e) {
       document.getElementById('complaint-description').value = '';
       document.getElementById('complaint-file').value = '';
     } else {
-      showToast(result.message || 'Failed to submit complaint', "toast-failed");
+      alert(result.message || 'Failed to submit complaint');
     }
   } catch (err) {
     console.error('Submit complaint failed', err);
     if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
-      showToast('Your session has expired. Please log in again.', "toast-failed");
+      alert('Your session has expired. Please log in again.');
       await handleLogout();
       navigate('student-login');
     } else {
-      showToast(err?.message || 'Failed to submit complaint. Please try again.', "toast-failed");
+      alert(err?.message || 'Failed to submit complaint. Please try again.');
     }
   }
 }
@@ -1448,13 +1482,13 @@ async function handleCreateEvent(e) {
 
       closeEventModal();
       renderStaffEventsTable();
-      showToast('Event created successfully!');
+      alert('Event created successfully!');
     } else {
-      showToast('Failed to create event', "toast-failed");
+      alert('Failed to create event');
     }
   } catch (err) {
     console.error('Create event failed', err);
-    showToast(err?.message || 'Failed to create event', "toast-failed");
+    alert(err?.message || 'Failed to create event');
   }
 }
 
@@ -1465,7 +1499,7 @@ async function handleRegisterEvent(eventId) {
     // Try to refresh auth state
     await ensureCurrentUser();
     if (!currentUser) {
-      showToast('Please log in to register for events', "toast-alert");
+      alert('Please log in to register for events');
       navigate('student-login');
       return;
     }
@@ -1473,13 +1507,13 @@ async function handleRegisterEvent(eventId) {
   
   // Check if user is a student
   if (currentUser.role !== 'student') {
-    showToast('Only students can register for events', "toast-alert");
+    alert('Only students can register for events');
     return;
   }
   
   const event = eventsData.find(e => e.id === eventId);
   if (!event) {
-    showToast('Event not found', "toast-alert");
+    alert('Event not found');
     return;
   }
   
@@ -1496,19 +1530,19 @@ async function handleRegisterEvent(eventId) {
           renderEventsList();
           renderUpcomingEvents();
           
-          showToast(result.message || 'Successfully unregistered from event!');
+          alert(result.message || 'Successfully unregistered from event!');
         } else {
-          showToast(result?.message || 'Failed to unregister from event', "toast-failed");
+          alert(result?.message || 'Failed to unregister from event');
         }
       } catch (err) {
         console.error('Unregistration failed', err);
         // Handle 401 specifically
         if (err.message && err.message.includes('Not logged in')) {
-          showToast('Your session has expired. Please log in again.', "toast-alert");
+          alert('Your session has expired. Please log in again.');
           await handleLogout();
           navigate('student-login');
         } else {
-          showToast(err?.message || 'Failed to unregister from event. Please try again.', "toast-failed");
+          alert(err?.message || 'Failed to unregister from event. Please try again.');
         }
       }
     }
@@ -1528,18 +1562,18 @@ async function handleUpdateStatus(id, status) {
       // Re-render the staff complaints table
       renderStaffComplaintsTable();
       
-      showToast(result.message || 'Complaint status updated successfully!');
+      alert(result.message || 'Complaint status updated successfully!');
     } else {
-      showToast(result.message || 'Failed to update complaint status', "toast-failed");
+      alert(result.message || 'Failed to update complaint status');
     }
   } catch (err) {
     console.error('Update status failed', err);
     if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
-      showToast('Your session has expired. Please log in again.', "toast-alert");
+      alert('Your session has expired. Please log in again.');
       await handleLogout();
       navigate('staff-login');
     } else {
-      showToast(err?.message || 'Failed to update complaint status. Please try again.', "toast-failed");
+      alert(err?.message || 'Failed to update complaint status. Please try again.');
     }
   }
 }
@@ -1554,7 +1588,7 @@ async function handleDeleteEvent(eventId) {
       }
     } catch (err) {
       console.error('Delete event failed', err);
-      showToast(err?.message || 'Failed to delete event', "toast-failed");
+      alert(err?.message || 'Failed to delete event');
     }
   }
 }
@@ -1921,7 +1955,7 @@ function renderEventEdit() {
 async function handleSaveEditedEvent(e) {
   e.preventDefault();
   if (selectedEventId == null) {
-    showToast('No event selected to edit', "toast-alert");
+    alert('No event selected to edit');
     return;
   }
 
@@ -1941,7 +1975,7 @@ async function handleSaveEditedEvent(e) {
   // Update local in-memory event object (placeholder for real API update)
   const ev = eventsData.find(ei => ei.id === selectedEventId);
   if (!ev) {
-    showToast('Event not found', "toast-alert");
+    alert('Event not found');
     return;
   }
 
@@ -1977,7 +2011,7 @@ async function handleSaveEditedEvent(e) {
     if (idx !== -1) eventsData[idx] = { ...eventsData[idx], ...updatedUi };
   } catch (err) {
     console.error('Failed to update event via API', err);
-    showToast(err?.message || 'Failed to update event', "toast-failed");
+    alert(err?.message || 'Failed to update event');
     return;
   }
 
@@ -1988,7 +2022,7 @@ async function handleSaveEditedEvent(e) {
   navigate('staff-events');
   // ensure events are present and re-render the table
   renderStaffEventsTable();
-  showToast('Event updated successfully');
+  alert('Event updated successfully');
 }
 
 // ========== Main Render Function ==========

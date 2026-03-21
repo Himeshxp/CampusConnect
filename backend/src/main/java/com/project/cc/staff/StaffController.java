@@ -1,49 +1,35 @@
 package com.project.cc.staff;
 
 import com.project.cc.complaint.ComplaintRepo;
-import com.project.cc.complaint.ComplaintService;
-import com.project.cc.staff.StaffService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
+@Valid
 @RequestMapping("/api/staff")
 public class StaffController {
-    @Autowired
-    private StaffRepository staffRepository;
-    @Autowired
-    private ComplaintRepo complaintRepo;
+    private StaffService staffService;
+    public StaffController(StaffService staffService, ComplaintRepo complaintRepo) {
+        this.staffService = staffService;
+    }
 
     @GetMapping("/all")
-    public List<Staff> getAllStaff()
-    {
-        return staffRepository.findAll();
+    public List<StaffResponseDTO> getAllStaff() {
+        return staffService.getAllStaff();
     }
+
     @PostMapping("/add")
-    public Staff addStaff(@RequestBody Staff staff)
-    {
-        return staffRepository.save(staff);
-    }
-
-    @GetMapping("/{id}")
-
-    public ResponseEntity<?> getStaff(@PathVariable Integer id){
-        return staffRepository.findById(id).map(staff -> ResponseEntity.ok().body(staff)).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public ResponseEntity<StaffResponseDTO> addStaff( @Valid @RequestBody CreateStaffRequestDTO staffdto) {
+       return ResponseEntity.ok(staffService.addStaff(staffdto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteStaff(@PathVariable Integer id){
-        if(!staffRepository.existsById(id))
-        {
-            return ResponseEntity.notFound().build();
-        }
-        staffRepository.deleteById(id);
-        return ResponseEntity.ok("Deleted Staff");
+    public ResponseEntity<Void> deleteStaff(@PathVariable Integer id) {
+         staffService.deleteStaff(id);
+         return ResponseEntity.noContent().build();
     }
 
 

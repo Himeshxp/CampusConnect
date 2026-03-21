@@ -5,9 +5,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import lombok.Data;
+import lombok.*;
+import org.antlr.v4.runtime.misc.NotNull;
 
 @Data
+@AllArgsConstructor
 @Entity
 public class Staff {
     @Id
@@ -16,7 +18,6 @@ public class Staff {
     private String firstName;
     private String lastName;
     private String email;
-    @JsonIgnore
     private String password;
     // TODO: SECURITY BUG - Passwords should be hashed using BCrypt or similar
     // Current implementation stores passwords in plain text which is a major security vulnerability
@@ -31,42 +32,5 @@ public class Staff {
 
     public Staff() {
     }
-    public Integer getId() {
-        return id;
-    }
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getPassword() {
-        return password;
-    }
 }
