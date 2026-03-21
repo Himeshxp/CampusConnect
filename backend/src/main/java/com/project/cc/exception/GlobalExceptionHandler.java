@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.util.HashMap;
 import java.util.Map;
 
+
+// handling the global exception
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
