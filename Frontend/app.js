@@ -582,10 +582,32 @@ document.addEventListener('DOMContentLoaded', initTheme);
 
 
 // ========== Routing ==========
-function navigate(page) {
-  // page may include query params (e.g. 'event-edit?id=1').
-  // Store fullPage in history state but set currentPage to the base page (before '?') so render() matches cases.
+async function navigate(page) {
   const base = String(page).split('?')[0];
+
+  const protectedStudentPages = ['student-dashboard', 'student-complaints', 'student-events'];
+  const protectedStaffPages = ['staff-dashboard', 'staff-complaints', 'staff-events'];
+
+  if (protectedStudentPages.includes(base) || protectedStaffPages.includes(base)) {
+    await ensureCurrentUser(true);
+
+    if (!currentUser) {
+      window.location.hash = '#student-login';
+      return;
+    }
+
+    // ROLE CHECK (important)
+    if (protectedStudentPages.includes(base) && currentUser.role !== 'student') {
+      window.location.hash = '#student-login';
+      return;
+    }
+
+    if (protectedStaffPages.includes(base) && currentUser.role !== 'staff') {
+      window.location.hash = '#staff-login';
+      return;
+    }
+  }
+
   currentPage = base || 'landing';
   render();
   window.history.pushState({ fullPage: page }, '', `#${page}`);
@@ -954,14 +976,20 @@ async function handleLogout() {
   navigate('landing');
 }
 
-async function ensureCurrentUser() {
-  if (authChecked) return currentUser;
+async function ensureCurrentUser(force = false) {
+  if (authChecked && !force) return currentUser;
+
   authChecked = true;
 
   try {
     const me = await getMe();
     if (me?.authenticated) {
-      currentUser = { id: me.id, email: me.email, name: me.name, role: me.role };
+      currentUser = {
+        id: me.id,
+        email: me.email,
+        name: me.name,
+        role: me.role
+      };
     } else {
       currentUser = null;
     }
@@ -2037,8 +2065,8 @@ async function render() {
   
   const needsStudent = protectedStudentPages.includes(currentPage);
   const needsStaff = protectedStaffPages.includes(currentPage);
-  if ((needsStudent || needsStaff) && !authChecked) {
-    await ensureCurrentUser();
+  if (needsStudent || needsStaff) {
+    await ensureCurrentUser(); // ALWAYS verify with backend
   }
 
   if (needsStudent && (!currentUser || currentUser.role !== 'student')) {
@@ -2186,22 +2214,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // try restoring local user
   try {
-    const saved = localStorage.getItem('user');
+    // Remove setting authChecked = true here
     if (saved) {
       currentUser = JSON.parse(saved);
-      authChecked = true;
     }
   } catch (e) {}
 
   // If no saved user, fallback to server session
   if (!currentUser) {
-    await ensureCurrentUser();
+    await ensureCurrentUser(true);
     if (currentUser) {
       localStorage.setItem('user', JSON.stringify(currentUser)); // keep it synced
     }
   }
 
   currentPage = getPageFromHash();
+  await ensureCurrentUser(true); // force refresh
   render();
 });
 

@@ -13,9 +13,12 @@ import java.util.List;
 
 @Service
 public class ComplaintService {
+
     private  ComplaintRepo complaintRepo;
-    public ComplaintService(ComplaintRepo complaintRepo) {
+    private ComplaintMapper complaintMapper;
+    public ComplaintService(ComplaintRepo complaintRepo, ComplaintMapper complaintMapper) {
         this.complaintRepo = complaintRepo;
+        this.complaintMapper = complaintMapper;
     }
 
     public static class StatusUpdateRequest {
@@ -38,25 +41,10 @@ public class ComplaintService {
         public void setDescription(String description) { this.description = description; }
     }
     // Adding Complaint
-    public ResponseEntity<?> addComplaint(
-             ComplaintRequest request,
-            HttpSession session){
-        Object userObj = session.getAttribute("user");
-        String role = (String) session.getAttribute("role");
-        if (userObj == null || !"student".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(java.util.Map.of("success", false, "message", "Only logged-in students can file complaints"));
-        }
-        Student student = (Student) userObj;
-        // complaint creation
-        Complaints complaint = new Complaints();
-        complaint.setTitle(request.getTitle());
-        complaint.setCategory(request.getCategory());
-        complaint.setDescription(request.getDescription());
-
-        complaint.setStudent(student);
-        Complaints saved = complaintRepo.save(complaint);
-        return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Complaint has been added successfully", "id", saved.getId()));
+    public ComplaintResponseDTO addComplaint(ComplaintRequestDTO dto,Student student) {
+        Complaints complaints = complaintMapper.toEntity(dto,student);
+        Complaints complaints1 = complaintRepo.save(complaints);
+        return complaintMapper.toDTO(complaints1);
     }
 
     // Updating Status
@@ -96,7 +84,7 @@ public class ComplaintService {
     }
 
     //
-    public List<Complaints> getAll(){
-        return complaintRepo.findAll();
+    public List<ComplaintResponseDTO> getAll(){
+        return complaintRepo.findAll().stream().map(complaintMapper::toDTO).toList();
     }
 }
