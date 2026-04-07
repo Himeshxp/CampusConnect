@@ -17,22 +17,24 @@ public class Complaints {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+
     private String title;
     private String category;
     private String description;
 
     @Enumerated(EnumType.STRING)
-    private ComplaintStatus complaintStatus=ComplaintStatus.PENDING;
+    private ComplaintStatus complaintStatus;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id")
     private Student student;
     // Many complaints by a single student
     
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime createdAt = LocalDateTime.now();
-    public Complaints() {}
-
-
+    private LocalDateTime createdAt;
+    public Complaints() {
+        this.createdAt = LocalDateTime.now();
+        this.complaintStatus=ComplaintStatus.PENDING;
+    }
 
 }

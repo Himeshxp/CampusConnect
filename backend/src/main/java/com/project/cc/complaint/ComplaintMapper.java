@@ -2,7 +2,9 @@ package com.project.cc.complaint;
 
 import com.project.cc.ComplaintStatus;
 import com.project.cc.student.Student;
+import org.springframework.stereotype.Component;
 
+@Component
 public class ComplaintMapper {
 
     // taking from the user
@@ -16,15 +18,18 @@ public class ComplaintMapper {
     }
 
     // responding to user
-    public ComplaintResponseDTO toDTO(Complaints complaints){
+    public ComplaintResponseDTO toDTO(Complaints complaint){
+        String studentname=complaint.getStudent()!=null
+                ?
+                complaint.getStudent().getFirstName()+ " " + complaint.getStudent().getLastName():null;
      return new ComplaintResponseDTO(
-             complaints.getId(),
-             complaints.getTitle(),
-             complaints.getCategory(),
-             complaints.getDescription(),
-             complaints.getComplaintStatus(),
-             complaints.getStudent().getFirstName() +complaints.getStudent().getLastName(),
-             complaints.getCreatedAt()
+             complaint.getId(),
+             complaint.getTitle(),
+             complaint.getCategory(),
+             complaint.getDescription(),
+             complaint.getComplaintStatus(),
+             studentname,
+             complaint.getCreatedAt()
      );
     }
 }
