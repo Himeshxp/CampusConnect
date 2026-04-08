@@ -1,5 +1,7 @@
 package com.project.cc.event;
 
+import jakarta.servlet.http.HttpSession;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -9,41 +11,64 @@ import java.util.List;
 @RequestMapping("/api/events")
 public class EventController {
 
-    private EventService eventService;
+    private final EventService eventService;
 
     public EventController(EventService eventService) {
         this.eventService = eventService;
     }
 
-    //creating event
+    // CREATE EVENT (should be staff only)
     @PostMapping("/add")
-    public ResponseEntity<?> addEvent(@RequestBody Event event) {
-        return eventService.addEvent(event);
+    public ResponseEntity<?> addEvent(@RequestBody Event event, HttpSession session) {
+        String role = (String) session.getAttribute("role");
+        if (!"staff".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Only staff can add events");
+        }
+        return ResponseEntity.ok(eventService.addEvent(event));
     }
 
-    //fetching events
+    // GET ALL EVENTS
     @GetMapping("/all")
-    public List<?> getAllEvents() {
-        return eventService.getAllEvents();
+    public ResponseEntity<List<Event>> getAllEvents() {
+        return ResponseEntity.ok(eventService.getAllEvents());
     }
 
-    //fetching by id
+    // GET EVENT BY ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getEventById(@PathVariable Integer id) {
-        return eventService.getEventById(id);
+        return ResponseEntity.ok(eventService.getEventById(id));
     }
 
-    //deleting by id
+    // DELETE EVENT (staff only)
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteEventById(@PathVariable Integer id) {
-        return eventService.deleteEventById(id);
+    public ResponseEntity<?> deleteEventById(@PathVariable Integer id, HttpSession session) {
+
+        String role = (String) session.getAttribute("role");
+
+        if (!"staff".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Only staff can delete events");
+        }
+
+        eventService.deleteEventById(id);
+        return ResponseEntity.ok("Event deleted successfully");
     }
 
-    // EDIT/UPDATE EVENT
+    // UPDATE EVENT (staff only)
     @PutMapping("/update/{id}")
-    public ResponseEntity<?> updateEvent(@PathVariable Integer id, @RequestBody Event eventdata) {
-        return eventService.updateEvent(id, eventdata);
+    public ResponseEntity<?> updateEvent(
+            @PathVariable Integer id,
+            @RequestBody Event eventData,
+            HttpSession session
+    ) {
+        String role = (String) session.getAttribute("role");
+
+        if (!"staff".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Only staff can update events");
+        }
+
+        return ResponseEntity.ok(eventService.updateEvent(id, eventData));
     }
-
-
 }

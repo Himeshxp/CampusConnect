@@ -24,34 +24,45 @@ public class EventRegistrationController {
         this.eventService = eventService;
     }
 
-// Count of registrations
+    // Count of registrations
     @GetMapping("/counts")
     public ResponseEntity<?> getRegistrationCounts() {
-       return eventService.getRegistrationCounts();
-
+        return ResponseEntity.ok(eventService.getRegistrationCounts());
     }
+
 
     // GET EVENTS CURRENT STUDENT REGISTERED IN
     @GetMapping("/student/me")
-    public ResponseEntity<?> getMyRegisteredEventIds(HttpSession request) {
-        return eventService.getMyRegisteredEventIds(request);
+    public ResponseEntity<?> getMyRegisteredEventIds(HttpSession session) {
+        return ResponseEntity.ok(eventService.getMyRegisteredEventIds(session));
     }
 
 
+    // REGISTER TO EVENT
     @PostMapping("/{id}")
-    public ResponseEntity<?> registerToEvent(@PathVariable Integer id, HttpSession request) {
-        return eventService.registerToEvent(id, request);
+    public ResponseEntity<?> registerToEvent(@PathVariable Integer id, HttpSession session) {
+        eventService.registerToEvent(id, session);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Registered successfully"
+        ));
     }
 
 
+    // UNREGISTER FROM EVENT
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> unregisterFromEvent(@PathVariable Integer id, HttpSession request) {
-        return eventService.unregisterFromEvent(id, request);
+    public ResponseEntity<?> unregisterFromEvent(@PathVariable Integer id, HttpSession session) {
+        eventService.unregisterFromEvent(id, session);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Unregistered successfully"
+        ));
     }
 
 
+    // GET ALL REGISTRATIONS OF AN EVENT
     @GetMapping("/{eventId}")
     public ResponseEntity<?> getEventRegistrations(@PathVariable Integer eventId) {
-        return eventService.getEventRegistrations(eventId);
+        return ResponseEntity.ok(eventService.getEventRegistrations(eventId));
     }
 }
