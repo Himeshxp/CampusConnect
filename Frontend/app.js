@@ -2209,27 +2209,32 @@ async function render() {
 
 // ========== Initialize ==========
 document.addEventListener('DOMContentLoaded', async () => {
-  // Initialize API_BASE from index.html or .env before doing anything that calls the backend.
+  // Initialize API base URL before any backend calls
   await initApiBase();
 
-  // try restoring local user
+  // Try restoring user from localStorage (fast, no network)
   try {
-    // Remove setting authChecked = true here
     if (saved) {
       currentUser = JSON.parse(saved);
     }
-  } catch (e) {}
-
-  // If no saved user, fallback to server session
-  if (!currentUser) {
-    await ensureCurrentUser(true);
-    if (currentUser) {
-      localStorage.setItem('user', JSON.stringify(currentUser)); // keep it synced
-    }
+  } catch (e) {
+    // ignore parsing errors
   }
 
+  // IMPORTANT:
+  // We call ensureCurrentUser ONLY ONCE here with force=true
+  // This verifies session with backend (/auth/me)
+  // and prevents multiple duplicate API calls later
+  await ensureCurrentUser(true);
+
+  // Sync localStorage if backend confirms user is logged in
+  if (currentUser) {
+    localStorage.setItem('user', JSON.stringify(currentUser));
+  }
+
+  // Set initial page from URL hash (routing)
   currentPage = getPageFromHash();
-  await ensureCurrentUser(true); // force refresh
+
+  // Render the app (UI should NOT block on multiple auth calls anymore)
   render();
 });
-

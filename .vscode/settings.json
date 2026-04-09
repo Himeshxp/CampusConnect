@@ -1,3 +1,5 @@
 {
-    "liveServer.settings.port": 5502
+    "liveServer.settings.port": 5500,
+    "java.compile.nullAnalysis.mode": "disabled",
+    "liveServer.settings.multiRootWorkspaceName": "CampusConnect"
 }

@@ -19,16 +19,33 @@
 <meta property="og:url" content="https://campus-connectapp.netlify.app">
 <!-- <meta property="og:image" content="https://campus-connectapp.netlify.app/preview.png"> -->
 
-<!-- Preconnect for faster fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<!-- Preconnect (fixed with crossorigin) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<!-- Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<!-- Google Fonts (non-blocking) -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'">
+
+<!-- Material Icons (non-blocking) -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'">
+
+<!-- Fallback for no-JS -->
+<noscript>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+</noscript>
 
 <!-- CSS -->
-<link rel="stylesheet" href="styles.css">
+<link rel="preload" href="styles.css" as="style" onload="this.rel='stylesheet'">
+<noscript>
+  <link rel="stylesheet" href="styles.css">
+</noscript>
 
 <!-- Canonical URL -->
 <link rel="canonical" href="https://campus-connectapp.netlify.app">
@@ -734,6 +751,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
