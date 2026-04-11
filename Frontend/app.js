@@ -649,6 +649,22 @@ function toggleVisibility(eyeicon) {
   : eyeicon.firstElementChild.textContent = 'visibility'
 }
 
+// function to show toast takes two arguments
+function showToast(message, type = 'toast-success') {
+    const toastContainer = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.classList.add('toast', type);
+    toast.innerHTML = `<i class="material-icons-round info-icon" aria-hidden="true">info</i> ${message}`
+    toastContainer.appendChild(toast);
+    void toast.offsetWidth;
+    toast.classList.add('slide-in');
+    setTimeout(() => {
+        toast.classList.remove('slide-in');
+        toast.classList.add('slide-out');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 3500);
+}
+
 // ========== Template Helper ==========
 function cloneTemplate(templateId) {
   const template = document.getElementById(`template-${templateId}`);
@@ -933,13 +949,14 @@ async function handleStudentLogin(e) {
       currentUser = { id: result.id, email: result.email, name: result.name, role: result.role };
       authChecked = true;
       localStorage.setItem('user', JSON.stringify(currentUser));
-      navigate('student-dashboard');      
+      showToast("Student Login Successful!");
+      navigate('student-dashboard');        
       return;
     }
-    alert(result?.message || 'Student login failed');
+    showToast(result?.message || "Student Login Failed!", "toast-failed")
   } catch (err) {
     console.error('Student login failed', err);
-    alert('Student login failed');
+    showToast("Student Login Failed!", "toast-failed")
   }
 }
 
@@ -957,10 +974,10 @@ async function handleStaffLogin(e) {
       navigate('staff-dashboard');      
       return;
     }
-    alert(result?.message || 'Staff login failed');
+    showToast(result?.message || 'Staff login failed', "toast-failed");
   } catch (err) {
     console.error('Staff login failed', err);
-    alert('Staff login failed');
+    showToast('Staff login failed', "toast-failed");
   }
 }
 
@@ -1093,7 +1110,7 @@ async function openRegisterModal(eventId) {
   if (!currentUser) {
     await ensureCurrentUser();
     if (!currentUser) {
-      alert('Please log in to register for events');
+      showToast('Please log in to register for events', "toast-alert");
       navigate('student-login');
       return;
     }
@@ -1101,13 +1118,13 @@ async function openRegisterModal(eventId) {
   
   // Check if user is a student
   if (currentUser.role !== 'student') {
-    alert('Only students can register for events');
+    showToast('Only students can register for events', "toast-alert");
     return;
   }
   
   const event = eventsData.find(e => e.id === eventId);
   if (!event) {
-    alert('Event not found');
+    showToast('Event not found', "toast-alert");
     return;
   }
   
@@ -1153,7 +1170,7 @@ async function handleEventRegisterSubmit(e) {
   if (!currentUser) {
     await ensureCurrentUser();
     if (!currentUser) {
-      alert('Please log in to register for events');
+      showToast('Please log in to register for events', "toast-alert");
       closeRegisterModal();
       navigate('student-login');
       return;
@@ -1162,13 +1179,13 @@ async function handleEventRegisterSubmit(e) {
   
   // Check if user is a student
   if (currentUser.role !== 'student') {
-    alert('Only students can register for events');
+    showToast('Only students can register for events', "toast-alert");
     closeRegisterModal();
     return;
   }
   
   if (!pendingRegistrationEventId) {
-    alert('No event selected for registration');
+    showToast('No event selected for registration', "toast-alert");
     return;
   }
   
@@ -1188,20 +1205,20 @@ async function handleEventRegisterSubmit(e) {
       renderEventsList();
       renderUpcomingEvents();
       
-      alert(result.message || 'Successfully registered for event!');
+      showToast(result.message || 'Successfully registered for event!');
     } else {
-      alert(result?.message || 'Failed to register for event');
+      showToast(result?.message || 'Failed to register for event', "toast-failed");
     }
   } catch (err) {
     console.error('Registration failed', err);
     // Handle 401 specifically
     if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
-      alert('Your session has expired. Please log in again.');
+      showToast('Your session has expired. Please log in again.', "toast-alert");
       closeRegisterModal();
       await handleLogout();
       navigate('student-login');
     } else {
-      alert(err?.message || 'Failed to register for event. Please try again.');
+      showToast(err?.message || 'Failed to register for event. Please try again.', "toast-failed");
     }
   }
 }
@@ -1259,7 +1276,7 @@ let ratingState = {
 function openRatingModal(complaintId) {
   // Only students can submit ratings
   if (currentUser?.role !== 'student') {
-    alert('Only students can submit feedback for complaints.');
+    showToast('Only students can submit feedback for complaints.', "toast-alert");
     return;
   }
 
@@ -1335,7 +1352,7 @@ async function handleSubmitRating(e) {
 
   const complaint = complaintsData.find(c => c.id === ratingState.complaintId);
   if (!complaint) {
-    alert('Complaint not found');
+    showToast('Complaint not found', "toast-alert");
     return;
   }
 
@@ -1350,7 +1367,7 @@ async function handleSubmitRating(e) {
   // Re-render the appropriate complaints table depending on current page
   if (currentPage === 'staff-complaints') renderStaffComplaintsTable();
   if (currentPage === 'student-complaints') renderComplaintsTable();
-  alert('Thanks for your feedback');
+  showToast('Thanks for your feedback');
 }
 
 function closeModal(e, modalId) {
@@ -1404,7 +1421,7 @@ async function handleSubmitComplaint(e) {
       // Re-render the complaints table
       renderComplaintsTable();
       
-      alert(result.message || 'Complaint submitted successfully!');
+      showToast(result.message || 'Complaint submitted successfully!');
       
       // Clear form
       document.getElementById('complaint-title').value = '';
@@ -1412,16 +1429,16 @@ async function handleSubmitComplaint(e) {
       document.getElementById('complaint-description').value = '';
       document.getElementById('complaint-file').value = '';
     } else {
-      alert(result.message || 'Failed to submit complaint');
+      showToast(result.message || 'Failed to submit complaint', "toast-failed");
     }
   } catch (err) {
     console.error('Submit complaint failed', err);
     if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
-      alert('Your session has expired. Please log in again.');
+      showToast('Your session has expired. Please log in again.', "toast-alert");
       await handleLogout();
       navigate('student-login');
     } else {
-      alert(err?.message || 'Failed to submit complaint. Please try again.');
+      showToast(err?.message || 'Failed to submit complaint. Please try again.', "toast-failed");
     }
   }
 }
@@ -1510,13 +1527,13 @@ async function handleCreateEvent(e) {
 
       closeEventModal();
       renderStaffEventsTable();
-      alert('Event created successfully!');
+      showToast('Event created successfully!');
     } else {
-      alert('Failed to create event');
+      showToast('Failed to create event', "toast-failed");
     }
   } catch (err) {
     console.error('Create event failed', err);
-    alert(err?.message || 'Failed to create event');
+    showToast(err?.message || 'Failed to create event', "toast-failed");
   }
 }
 
@@ -1527,7 +1544,7 @@ async function handleRegisterEvent(eventId) {
     // Try to refresh auth state
     await ensureCurrentUser();
     if (!currentUser) {
-      alert('Please log in to register for events');
+      showToast('Please log in to register for events', "toast-alert");
       navigate('student-login');
       return;
     }
@@ -1535,13 +1552,13 @@ async function handleRegisterEvent(eventId) {
   
   // Check if user is a student
   if (currentUser.role !== 'student') {
-    alert('Only students can register for events');
+    showToast('Only students can register for events', "toast-alert");
     return;
   }
   
   const event = eventsData.find(e => e.id === eventId);
   if (!event) {
-    alert('Event not found');
+    showToast('Event not found', "toast-alert");
     return;
   }
   
@@ -1558,19 +1575,19 @@ async function handleRegisterEvent(eventId) {
           renderEventsList();
           renderUpcomingEvents();
           
-          alert(result.message || 'Successfully unregistered from event!');
+          showToast(result.message || 'Successfully unregistered from event!');
         } else {
-          alert(result?.message || 'Failed to unregister from event');
+          showToast(result?.message || 'Failed to unregister from event', "toast-failed");
         }
       } catch (err) {
         console.error('Unregistration failed', err);
         // Handle 401 specifically
         if (err.message && err.message.includes('Not logged in')) {
-          alert('Your session has expired. Please log in again.');
+          showToast('Your session has expired. Please log in again.', "toast-alert");
           await handleLogout();
           navigate('student-login');
         } else {
-          alert(err?.message || 'Failed to unregister from event. Please try again.');
+          showToast(err?.message || 'Failed to unregister from event. Please try again.', "toast-failed");
         }
       }
     }
@@ -1590,18 +1607,18 @@ async function handleUpdateStatus(id, status) {
       // Re-render the staff complaints table
       renderStaffComplaintsTable();
       
-      alert(result.message || 'Complaint status updated successfully!');
+      showToast(result.message || 'Complaint status updated successfully!');
     } else {
-      alert(result.message || 'Failed to update complaint status');
+      showToast(result.message || 'Failed to update complaint status', "toast-failed");
     }
   } catch (err) {
     console.error('Update status failed', err);
     if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
-      alert('Your session has expired. Please log in again.');
+      showToast('Your session has expired. Please log in again.', "toast-alert");
       await handleLogout();
       navigate('staff-login');
     } else {
-      alert(err?.message || 'Failed to update complaint status. Please try again.');
+      showToast(err?.message || 'Failed to update complaint status. Please try again.', "toast-failed");
     }
   }
 }
@@ -1616,7 +1633,7 @@ async function handleDeleteEvent(eventId) {
       }
     } catch (err) {
       console.error('Delete event failed', err);
-      alert(err?.message || 'Failed to delete event');
+      showToast(err?.message || 'Failed to delete event', "toast-failed");
     }
   }
 }
@@ -1983,7 +2000,7 @@ function renderEventEdit() {
 async function handleSaveEditedEvent(e) {
   e.preventDefault();
   if (selectedEventId == null) {
-    alert('No event selected to edit');
+    showToast('No event selected to edit', "toast-alert");
     return;
   }
 
@@ -2003,7 +2020,7 @@ async function handleSaveEditedEvent(e) {
   // Update local in-memory event object (placeholder for real API update)
   const ev = eventsData.find(ei => ei.id === selectedEventId);
   if (!ev) {
-    alert('Event not found');
+    showToast('Event not found', "toast-alert");
     return;
   }
 
@@ -2039,7 +2056,7 @@ async function handleSaveEditedEvent(e) {
     if (idx !== -1) eventsData[idx] = { ...eventsData[idx], ...updatedUi };
   } catch (err) {
     console.error('Failed to update event via API', err);
-    alert(err?.message || 'Failed to update event');
+    showToast(err?.message || 'Failed to update event', "toast-failed");
     return;
   }
 
@@ -2050,7 +2067,7 @@ async function handleSaveEditedEvent(e) {
   navigate('staff-events');
   // ensure events are present and re-render the table
   renderStaffEventsTable();
-  alert('Event updated successfully');
+  showToast('Event updated successfully');
 }
 
 // ========== Main Render Function ==========

@@ -916,7 +916,7 @@ textarea::placeholder {
 }
 
 .navbar-links {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 0.25rem;
   position: relative;
