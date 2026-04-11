@@ -9,7 +9,7 @@
 // See more inline explanations in the relevant functions below.
 // Prefer API base configured in `index.html` (window.CAMPUSCONNECT_API_BASE) or in `.env` (REACT_APP_API_URL).
 // Always normalize to exactly one trailing slash so we can safely do `${API_BASE}api/...`.
-let API_BASE = 'https://firstdeployment-xvjt.onrender.com';
+let API_BASE = window.CAMPUSCONNECT_API_BASE || 'http://localhost:8080/';
 
 function normalizeApiBase(raw) {
   const s = String(raw || '').replace(/\/+$/, '');

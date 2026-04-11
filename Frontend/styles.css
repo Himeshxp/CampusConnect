@@ -1670,7 +1670,8 @@ textarea::placeholder {
   }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
+
   .hero-title {
     font-size: 3.75rem;
   }
@@ -1694,9 +1695,7 @@ textarea::placeholder {
   .dashboard-header h1 {
     font-size: 1.875rem;
   }
-}
 
-@media (min-width: 1024px) {
   .stats-section {
     grid-template-columns: repeat(3, 1fr);
   }
