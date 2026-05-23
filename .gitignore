@@ -6,7 +6,6 @@ dist/
 target/
 .idea/
 *.iml
-.mvn/wrapper/maven-wrapper.jar
 application.properties.bak
 *.log
 
