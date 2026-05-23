@@ -15,11 +15,18 @@ public class WebCorsConfig implements WebMvcConfigurer {
         registry.addMapping("/api/**")
                 .allowedOrigins(
                         "http://localhost:5500",
-                        "http://127.0.0.1:5500")
-
+                        "http://127.0.0.1:5500",
+                        "http://localhost:3000",
+                        "http://127.0.0.1:3000",
+                        "http://localhost:8080",
+                        "http://127.0.0.1:8080",
+                        "http://192.168.31.187:5500",
+                        "null"  // file:// origin shown as "null" by browsers
+                )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .allowCredentials(true);
+                .exposedHeaders("Authorization")
+                .allowCredentials(false);
     }
 }
 

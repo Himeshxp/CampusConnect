@@ -19,8 +19,6 @@ public class Staff {
     private String lastName;
     private String email;
     private String password;
-    // TODO: SECURITY BUG - Passwords should be hashed using BCrypt or similar
-    // Current implementation stores passwords in plain text which is a major security vulnerability
     private String role="STAFF";
     public Staff(String firstName, String lastName, String email, String password, String role) {
         this.firstName = firstName != null ? firstName : "";

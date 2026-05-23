@@ -1,0 +1,11 @@
+target/
+.git/
+src/test/
+.env
+.dockerignore
+*.log
+logs/
+tmp/
+.idea/
+.vscode/
+*.iml

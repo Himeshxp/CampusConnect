@@ -41,15 +41,20 @@ async function initApiBase() {
   API_BASE = normalizeApiBase(API_BASE);
 }
 
+function getAuthToken() {
+  try { return localStorage.getItem('authToken') || null; } catch (e) { return null; }
+}
+
 async function fetchJson(url, options = {}) {
+  const token = getAuthToken();
+  const { headers: extraHeaders, ...restOptions } = options;
   const res = await fetch(url, {
+    ...restOptions,
     headers: {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
-      ...(options.headers || {}),
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+      ...(extraHeaders || {}),
     },
-    // Keep auth/session behavior consistent with other calls.
-    credentials: "include",
-    ...options,
   });
 
   // Some endpoints may return empty body; handle safely.
@@ -66,32 +71,6 @@ async function fetchJson(url, options = {}) {
       (data && typeof data === "object" && (data.message || data.error)) ||
       (typeof data === "string" && data) ||
       `Request failed (${res.status})`;
-
-    // #region agent log
-    fetch('http://127.0.0.1:7652/ingest/eb05b2db-ec66-4479-af8a-eb199c54b7a5', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '96b9c0',
-      },
-      body: JSON.stringify({
-        sessionId: '96b9c0',
-        runId: 'complaint-run',
-        hypothesisId: 'H2',
-        location: 'app.js:64',
-        message: 'fetchJson non-ok response',
-        data: {
-          url,
-          status: res.status,
-          statusText: res.statusText,
-          responseBodyPreview: typeof data === 'string'
-            ? data.slice(0, 200)
-            : (data && (data.message || data.error)) || null,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion agent log
 
     throw new Error(msg);
   }
@@ -142,15 +121,8 @@ async function loginStudent(email, password) {
   const response = await fetch(`${API_BASE}api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    // Required for Spring session (JSESSIONID) to be stored/sent.
-    credentials: "include",
-    body: JSON.stringify({
-      email,
-      password,
-      role: "student",
-    }),
+    body: JSON.stringify({ email, password, role: "student" }),
   });
-
   return response.json();
 }
 
@@ -159,32 +131,26 @@ async function loginStaff(email, password) {
   const response = await fetch(`${API_BASE}api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({
-      email,
-      password,
-      role: "staff",
-    }),
+    body: JSON.stringify({ email, password, role: "staff" }),
   });
-
-return response.json();
+  return response.json();
 }
 
 async function logout() {
-  const response = await fetch(`${API_BASE}api/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
-
-return response.json();
+  // JWT is stateless — just clear local storage
+  return { success: true };
 }
 
 async function getMe() {
-  const response = await fetch(`${API_BASE}api/auth/me`, {
-    method: "GET",
-    credentials: "include",
-  });
-  return response.json();
+  // Restore user from localStorage (JWT is stateless, no /me endpoint)
+  try {
+    const saved = localStorage.getItem('user');
+    const token = localStorage.getItem('authToken');
+    if (saved && token) {
+      return { authenticated: true, ...JSON.parse(saved) };
+    }
+  } catch (e) { /* ignore */ }
+  return { authenticated: false };
 }
 
 // Complaints APIs
@@ -194,11 +160,6 @@ async function getComplaints() {
     return Array.isArray(response) ? response.map(mapBackendComplaintToUi) : [];
   } catch (err) {
     console.error("Failed to load complaints from backend", err);
-    // If 401, user might not be logged in - return empty array
-    if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
-      console.warn('Not logged in or not a student - cannot get complaints');
-      return [];
-    }
     return [];
   }
 }
@@ -221,8 +182,9 @@ function mapBackendComplaintToUi(complaint) {
     description: complaint?.description || "",
     status: mapBackendStatusToUi(complaint?.complaintStatus),
     date: formatBackendDate(complaint?.createdAt),
-    studentName: complaint?.student ? `${complaint.student.firstName || ''} ${complaint.student.lastName || ''}`.trim() : 'N/A',
-    rated: false // This would need to be implemented in backend if needed
+    // Backend returns flat studentName string in ComplaintResponseDTO
+    studentName: complaint?.studentName || 'N/A',
+    rated: false
   };
 }
 
@@ -261,13 +223,12 @@ async function submitComplaint(data) {
       category: data.category,
       description: data.description
     };
-    
+    // Backend returns ComplaintResponseDTO directly (no { success } wrapper)
     const result = await fetchJson(`${API_BASE}api/complaint/add`, {
       method: 'POST',
       body: JSON.stringify(payload)
     });
-    
-    return result;
+    return { success: true, data: result };
   } catch (err) {
     console.error('Failed to submit complaint', err);
     throw err;
@@ -276,16 +237,22 @@ async function submitComplaint(data) {
 
 async function updateComplaintStatus(id, status) {
   try {
-    const payload = {
-      status: mapUiStatusToBackend(status)
-    };
-    
-    const result = await fetchJson(`${API_BASE}api/complaint/status/${id}`, {
+    const payload = { status: mapUiStatusToBackend(status) };
+    // Backend returns plain text "Status updated successfully" — use raw fetch
+    const token = getAuthToken();
+    const res = await fetch(`${API_BASE}api/complaint/status/${id}`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(payload)
     });
-    
-    return result;
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `Update failed (${res.status})`);
+    }
+    return { success: true };
   } catch (err) {
     console.error('Failed to update complaint status', err);
     throw err;
@@ -297,33 +264,33 @@ async function getEvents() {
   try {
     const list = await fetchJson(`${API_BASE}api/events/all`, { method: "GET" });
     if (!Array.isArray(list)) return [];
-    
-    // Map backend events to UI format
+
     let events = list.map(mapBackendEventToUi);
-    
-    // Fetch registration counts from database
-    const registrationCounts = await getRegistrationCounts();
-    
+
+    // Fetch registration counts
+    let registrationCounts = {};
+    try {
+      registrationCounts = await fetchJson(`${API_BASE}api/events/register/counts`, { method: "GET" }) || {};
+    } catch (e) {
+      console.warn('Could not fetch registration counts', e);
+    }
+
     // Fetch student's registered events if logged in as student
     let myRegisteredEventIds = [];
     if (currentUser && currentUser.role === 'student') {
-      myRegisteredEventIds = await getMyRegisteredEvents();
+      try {
+        const ids = await fetchJson(`${API_BASE}api/events/register/student/me`, { method: "GET" });
+        myRegisteredEventIds = Array.isArray(ids) ? ids : [];
+      } catch (e) {
+        console.warn('Could not fetch registered events', e);
+      }
     }
-    
-    // Merge registration counts and registration status into events
-    events = events.map(event => {
-      const eventIdStr = String(event.id);
-      const count = registrationCounts[eventIdStr] || 0;
-      const isRegistered = myRegisteredEventIds.includes(event.id);
-      
-      return {
-        ...event,
-        registrations: count,
-        registered: isRegistered
-      };
-    });
-    
-    return events;
+
+    return events.map(event => ({
+      ...event,
+      registrations: registrationCounts[String(event.id)] || 0,
+      registered: myRegisteredEventIds.includes(event.id),
+    }));
   } catch (err) {
     console.error("Failed to load events from backend", err);
     return [];
@@ -331,87 +298,11 @@ async function getEvents() {
 }
 
 async function registerForEvent(eventId) {
-  // Ensure we have a valid session before attempting registration
-  if (!currentUser) {
-    await ensureCurrentUser();
-    if (!currentUser) {
-      throw new Error('Not logged in. Please log in to register for events.');
-    }
-  }
-  
-  try {
-    const result = await fetchJson(`${API_BASE}api/events/register/${eventId}`, {
-      method: 'POST'
-    });
-    return result;
-  } catch (err) {
-    console.error('Failed to register for event', err);
-    // If 401, try to refresh auth and throw a clearer error
-    if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
-      // Refresh auth state
-      await ensureCurrentUser();
-      throw new Error('Your session has expired. Please log in again.');
-    }
-    throw err;
-  }
+  return fetchJson(`${API_BASE}api/events/register/${eventId}`, { method: 'POST' });
 }
 
 async function unregisterForEvent(eventId) {
-  // Ensure we have a valid session before attempting unregistration
-  if (!currentUser) {
-    await ensureCurrentUser();
-    if (!currentUser) {
-      throw new Error('Not logged in. Please log in to unregister from events.');
-    }
-  }
-  
-  try {
-    const result = await fetchJson(`${API_BASE}api/events/register/${eventId}`, {
-      method: 'DELETE'
-    });
-    return result;
-  } catch (err) {
-    console.error('Failed to unregister from event', err);
-    // If 401, try to refresh auth and throw a clearer error
-    if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
-      // Refresh auth state
-      await ensureCurrentUser();
-      throw new Error('Your session has expired. Please log in again.');
-    }
-    throw err;
-  }
-}
-
-// Get registration counts for all events from database
-async function getRegistrationCounts() {
-  try {
-    const counts = await fetchJson(`${API_BASE}api/events/register/counts`, {
-      method: 'GET'
-    });
-    return counts || {};
-  } catch (err) {
-    console.error('Failed to get registration counts', err);
-    return {};
-  }
-}
-
-// Get list of event IDs the current student is registered for
-async function getMyRegisteredEvents() {
-  try {
-    const eventIds = await fetchJson(`${API_BASE}api/events/register/student/me`, {
-      method: 'GET'
-    });
-    return Array.isArray(eventIds) ? eventIds : [];
-  } catch (err) {
-    // If 401, user might not be logged in or session expired - return empty array
-    // This is expected for non-students or when not logged in
-    if (err.message && (err.message.includes('Not logged in') || err.message.includes('401'))) {
-      console.warn('Not logged in or not a student - cannot get registered events');
-      return [];
-    }
-    console.error('Failed to get registered events', err);
-    return [];
-  }
+  return fetchJson(`${API_BASE}api/events/register/${eventId}`, { method: 'DELETE' });
 }
 
 async function createEvent(data) {
@@ -427,12 +318,22 @@ async function createEvent(data) {
     body: JSON.stringify(payload),
   });
 
+  // Backend returns the saved Event entity directly (no wrapper)
   const ui = mapBackendEventToUi(saved);
   return { success: true, id: ui.id, event: ui };
 }
 
 async function deleteEvent(eventId) {
-  await fetchJson(`${API_BASE}api/events/${eventId}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}api/events/${eventId}`, {
+    method: "DELETE",
+    headers: {
+      ...(getAuthToken() ? { "Authorization": `Bearer ${getAuthToken()}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Delete failed (${res.status})`);
+  }
   return { success: true };
 }
 
@@ -453,16 +354,14 @@ async function updateEventApi(eventId, data) {
 
 // Stats APIs
 async function getStudentStats() {
-  // Get actual registered events count from database
   let eventsRegistered = 0;
   try {
-    const registeredEventIds = await getMyRegisteredEvents();
-    eventsRegistered = Array.isArray(registeredEventIds) ? registeredEventIds.length : 0;
+    const ids = await fetchJson(`${API_BASE}api/events/register/student/me`, { method: "GET" });
+    eventsRegistered = Array.isArray(ids) ? ids.length : 0;
   } catch (err) {
     console.warn('Failed to get registered events count for stats', err);
   }
-  
-  // Get actual complaints count from database
+
   let totalComplaints = 0;
   let pendingComplaints = 0;
   try {
@@ -472,12 +371,8 @@ async function getStudentStats() {
   } catch (err) {
     console.warn('Failed to get complaints count for stats', err);
   }
-  
-  return {
-    totalComplaints: totalComplaints,
-    pendingComplaints: pendingComplaints,
-    eventsRegistered: eventsRegistered,
-  };
+
+  return { totalComplaints, pendingComplaints, eventsRegistered };
 }
 
 async function getStaffStats() {
@@ -524,7 +419,7 @@ async function getStaffStats() {
 }
 
 // ========== State Management ==========
-// Auth state is kept in-memory and restored from the server session via `/api/auth/me`.
+// Auth state is kept in-memory and restored from localStorage (JWT token).
 let currentUser = null;
 let authChecked = false;
 let currentPage = 'landing';
@@ -946,7 +841,8 @@ async function handleStudentLogin(e) {
   try {
     const result = await loginStudent(email, password);
     if (result?.success) {
-      currentUser = { id: result.id, email: result.email, name: result.name, role: result.role };
+      localStorage.setItem('authToken', result.token);
+      currentUser = { id: result.id, email: result.email, name: result.name || result.email, role: result.role };
       authChecked = true;
       localStorage.setItem('user', JSON.stringify(currentUser));
       showToast("Student Login Successful!");
@@ -968,7 +864,8 @@ async function handleStaffLogin(e) {
   try {
     const result = await loginStaff(email, password);
     if (result?.success) {
-      currentUser = { id: result.id, email: result.email, name: result.name, role: result.role };
+      localStorage.setItem('authToken', result.token);
+      currentUser = { id: result.id, email: result.email, name: result.name || result.email, role: result.role };
       authChecked = true;
       localStorage.setItem('user', JSON.stringify(currentUser));
       navigate('staff-dashboard');      
@@ -982,14 +879,12 @@ async function handleStaffLogin(e) {
 }
 
 async function handleLogout() {
-  try {
-    await logout();
-  } catch (err) {
-    console.warn('Logout request failed (clearing local state anyway)', err);
-  }
   currentUser = null;
   authChecked = true;
-  try { localStorage.removeItem('user'); } catch (e) { /* ignore */ }
+  try {
+    localStorage.removeItem('user');
+    localStorage.removeItem('authToken');
+  } catch (e) { /* ignore */ }
   navigate('landing');
 }
 
@@ -999,19 +894,28 @@ async function ensureCurrentUser(force = false) {
   authChecked = true;
 
   try {
-    const me = await getMe();
-    if (me?.authenticated) {
-      currentUser = {
-        id: me.id,
-        email: me.email,
-        name: me.name,
-        role: me.role
-      };
-    } else {
+    const token = localStorage.getItem('authToken');
+    const saved = localStorage.getItem('user');
+
+    if (!token || !saved) {
       currentUser = null;
+      return null;
     }
+
+    // Decode JWT payload to check expiry (no library needed — just base64 decode)
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const isExpired = payload.exp && (payload.exp * 1000) < Date.now();
+
+    if (isExpired) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      currentUser = null;
+      return null;
+    }
+
+    currentUser = JSON.parse(saved);
   } catch (err) {
-    console.warn('Failed to load session user', err);
+    console.warn('Failed to restore session', err);
     currentUser = null;
   }
 
@@ -1386,31 +1290,6 @@ async function handleSubmitComplaint(e) {
   };
   
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7652/ingest/eb05b2db-ec66-4479-af8a-eb199c54b7a5', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '96b9c0',
-      },
-      body: JSON.stringify({
-        sessionId: '96b9c0',
-        runId: 'complaint-run',
-        hypothesisId: 'H1',
-        location: 'app.js:1411',
-        message: 'handleSubmitComplaint before API call',
-        data: {
-          API_BASE,
-          hasCurrentUser: !!currentUser,
-          currentUserRole: currentUser?.role || null,
-          title: data.title,
-          category: data.category,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion agent log
-
     const result = await submitComplaint(data);
     if (result.success) {
       closeComplaintModal();
@@ -1421,7 +1300,7 @@ async function handleSubmitComplaint(e) {
       // Re-render the complaints table
       renderComplaintsTable();
       
-      showToast(result.message || 'Complaint submitted successfully!');
+      showToast('Complaint submitted successfully!');
       
       // Clear form
       document.getElementById('complaint-title').value = '';
@@ -1429,7 +1308,7 @@ async function handleSubmitComplaint(e) {
       document.getElementById('complaint-description').value = '';
       document.getElementById('complaint-file').value = '';
     } else {
-      showToast(result.message || 'Failed to submit complaint', "toast-failed");
+      showToast('Failed to submit complaint', "toast-failed");
     }
   } catch (err) {
     console.error('Submit complaint failed', err);
@@ -1601,15 +1480,9 @@ async function handleUpdateStatus(id, status) {
   try {
     const result = await updateComplaintStatus(id, status);
     if (result.success) {
-      // Refresh complaints data from database
       complaintsData = await getAllComplaints();
-      
-      // Re-render the staff complaints table
       renderStaffComplaintsTable();
-      
-      showToast(result.message || 'Complaint status updated successfully!');
-    } else {
-      showToast(result.message || 'Failed to update complaint status', "toast-failed");
+      showToast('Status updated successfully!');
     }
   } catch (err) {
     console.error('Update status failed', err);
@@ -1630,6 +1503,7 @@ async function handleDeleteEvent(eventId) {
       if (result?.success) {
         eventsData = await getEvents();
         renderStaffEventsTable();
+        showToast('Event deleted successfully!');
       }
     } catch (err) {
       console.error('Delete event failed', err);
@@ -2231,6 +2105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Try restoring user from localStorage (fast, no network)
   try {
+    const saved = localStorage.getItem('user');
     if (saved) {
       currentUser = JSON.parse(saved);
     }
@@ -2238,13 +2113,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ignore parsing errors
   }
 
-  // IMPORTANT:
-  // We call ensureCurrentUser ONLY ONCE here with force=true
-  // This verifies session with backend (/auth/me)
-  // and prevents multiple duplicate API calls later
+  // Verify token expiry and restore auth state
   await ensureCurrentUser(true);
 
-  // Sync localStorage if backend confirms user is logged in
+  // Sync localStorage if user is still valid
   if (currentUser) {
     localStorage.setItem('user', JSON.stringify(currentUser));
   }
@@ -2252,6 +2124,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Set initial page from URL hash (routing)
   currentPage = getPageFromHash();
 
-  // Render the app (UI should NOT block on multiple auth calls anymore)
+  // Render the app
   render();
 });

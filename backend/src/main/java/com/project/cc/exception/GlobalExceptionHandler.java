@@ -35,12 +35,21 @@ public class GlobalExceptionHandler {
         errors.put("message", "resource not found");
         return new ResponseEntity<>(errors, HttpStatus.NOT_FOUND);
     }
+    // Handling conflict errors (e.g. already registered)
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<?> handleConflict(IllegalStateException ex)
+    {
+        Map<String, String> errors = new HashMap<>();
+        errors.put("message", ex.getMessage());
+        return new ResponseEntity<>(errors, HttpStatus.CONFLICT);
+    }
+
     // handling generic errors
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleException(Exception ex)
     {
         Map<String, String> errors = new HashMap<>();
-        errors.put("message", "Something went wrong");
+        errors.put("message", ex.getMessage() != null ? ex.getMessage() : "Something went wrong");
         return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
