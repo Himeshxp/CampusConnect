@@ -1155,7 +1155,7 @@ function openDetailsModal(complaint) {
       <div>
         <div style="font-size: 0.875rem; font-weight: 500; color: var(--muted-foreground); margin-top:0.5rem;">Feedback</div>
         <div style="margin-top:0.25rem;">
-          <div style="font-weight:600;">Rating: ${'★'.repeat(complaint.rating || 0)}${'☆'.repeat(5 - (complaint.rating || 0))}</div>
+          <div style="font-weight:600;color: var(--muted-foreground);">Rating: ${'★'.repeat(complaint.rating || 0)}${'☆'.repeat(5 - (complaint.rating || 0))}</div>
           ${complaint.feedbackTags && complaint.feedbackTags.length ? `<div style="margin-top:0.5rem;">Tags: ${complaint.feedbackTags.map(t => `<span style=\"margin-right:0.5rem;\">${t}</span>`).join('')}</div>` : ''}
           ${complaint.feedbackText ? `<div style="margin-top:0.5rem;color:var(--muted-foreground);">${complaint.feedbackText}</div>` : ''}
         </div>
@@ -1199,6 +1199,7 @@ function openRatingModal(complaintId) {
     span.style.background = 'transparent';
     span.style.border = 'none';
     span.style.cursor = 'pointer';
+    span.style.color = 'var(--muted-foreground)';
     span.textContent = '☆';
     span.dataset.value = i;
     span.onclick = () => {
@@ -1235,7 +1236,7 @@ function updateStarDisplay(container, value) {
   children.forEach(ch => {
     const v = Number(ch.dataset.value);
     ch.textContent = v <= value ? '★' : '☆';
-    ch.style.color = v <= value ? 'gold' : '';
+    ch.style.color = v <= value ? 'gold' : 'var(--muted-foreground)';
   });
 }
 

@@ -180,6 +180,7 @@ Material Icons Styling Fix
   border-radius: 0.5rem;
   cursor: pointer;
   font-size: 0.9rem;
+  color: var(--foreground);
 }
 .tag-btn.active {
   background: var(--primary);

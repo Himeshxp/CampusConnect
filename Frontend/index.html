@@ -706,14 +706,14 @@
       <form id="rating-form" class="modal-body" onsubmit="handleSubmitRating(event)">
         <div style="display:flex;flex-direction:column;gap:1rem;">
           <div>
-            <label style="font-weight:600; display:block; margin-bottom:0.5rem;">Your rating</label>
-            <div id="rating-stars" style="font-size:1.5rem;"> 
+            <label style="font-weight:600; display:block; margin-bottom:0.5rem; color:var(--foreground);">Your rating</label>
+            <div id="rating-stars" style="font-size:1.5rem;">
               <!-- stars injected by JS -->
             </div>
           </div>
 
           <div>
-            <label style="font-weight:600; display:block; margin-bottom:0.5rem;">Quick tags</label>
+            <label style="font-weight:600; display:block; margin-bottom:0.5rem; color:var(--foreground);">Quick tags</label>
             <div id="rating-tags" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
               <button type="button" class="tag-btn" data-tag="Slow response">⏱️ Slow response</button>
               <button type="button" class="tag-btn" data-tag="Polite staff">😊 Polite staff</button>
@@ -723,7 +723,7 @@
           </div>
 
           <div>
-            <label style="font-weight:600; display:block; margin-bottom:0.5rem;">Additional comments (optional)</label>
+            <label style="font-weight:600; display:block; margin-bottom:0.5rem; color:var(--foreground);">Additional comments (optional)</label>
             <textarea id="rating-comment" rows="4" placeholder="Any additional feedback..." style="width:100%;"></textarea>
           </div>
 
