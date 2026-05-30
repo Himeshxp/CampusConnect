@@ -10,6 +10,8 @@
 // Prefer API base configured in `index.html` (window.CAMPUSCONNECT_API_BASE) or in `.env` (REACT_APP_API_URL).
 // Always normalize to exactly one trailing slash so we can safely do `${API_BASE}api/...`.
 let API_BASE = window.CAMPUSCONNECT_API_BASE || 'http://localhost:8080/';
+const EVENT_IMAGES_KEY = 'eventImages';
+let pendingEventImage = null;
 
 function normalizeApiBase(raw) {
   const s = String(raw || '').replace(/\/+$/, '');
@@ -41,18 +43,51 @@ async function initApiBase() {
   API_BASE = normalizeApiBase(API_BASE);
 }
 
-function getAuthToken() {
-  try { return localStorage.getItem('authToken') || null; } catch (e) { return null; }
+function clearAuthState() {
+  currentUser = null;
+  authChecked = true;
+  try {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+  } catch (e) {
+    // ignore storage failures
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function isSafeImageSrc(src) {
+  const value = String(src ?? '').trim();
+  if (!value) return false;
+  if (value.startsWith('images/') || value.startsWith('blob:')) return true;
+  if (/^data:image\/(png|jpe?g|gif|webp|bmp);base64,[a-z0-9+/=]+$/i.test(value)) return true;
+
+  try {
+    const url = new URL(value, window.location.href);
+    return ['http:', 'https:'].includes(url.protocol);
+  } catch (e) {
+    return false;
+  }
+}
+
+function getImageSrc(src) {
+  return isSafeImageSrc(src) ? src : 'images/fallback.webp';
 }
 
 async function fetchJson(url, options = {}) {
-  const token = getAuthToken();
   const { headers: extraHeaders, ...restOptions } = options;
   const res = await fetch(url, {
     ...restOptions,
+    credentials: 'include',
     headers: {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
       ...(extraHeaders || {}),
     },
   });
@@ -120,6 +155,7 @@ function mapBackendEventToUi(ev) {
 async function loginStudent(email, password) {
   const response = await fetch(`${API_BASE}api/auth/login`, {
     method: "POST",
+    credentials: 'include',
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, role: "student" }),
   });
@@ -130,6 +166,7 @@ async function loginStudent(email, password) {
 async function loginStaff(email, password) {
   const response = await fetch(`${API_BASE}api/auth/login`, {
     method: "POST",
+    credentials: 'include',
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, role: "staff" }),
   });
@@ -137,18 +174,23 @@ async function loginStaff(email, password) {
 }
 
 async function logout() {
-  // JWT is stateless — just clear local storage
+  const res = await fetch(`${API_BASE}api/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Logout failed (${res.status})`);
+  }
+
   return { success: true };
 }
 
 async function getMe() {
-  // Restore user from localStorage (JWT is stateless, no /me endpoint)
   try {
-    const saved = localStorage.getItem('user');
-    const token = localStorage.getItem('authToken');
-    if (saved && token) {
-      return { authenticated: true, ...JSON.parse(saved) };
-    }
+    const result = await fetchJson(`${API_BASE}api/auth/me`, { method: 'GET' });
+    return result && result.authenticated ? result : { authenticated: false };
   } catch (e) { /* ignore */ }
   return { authenticated: false };
 }
@@ -239,12 +281,11 @@ async function updateComplaintStatus(id, status) {
   try {
     const payload = { status: mapUiStatusToBackend(status) };
     // Backend returns plain text "Status updated successfully" — use raw fetch
-    const token = getAuthToken();
     const res = await fetch(`${API_BASE}api/complaint/status/${id}`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(payload)
     });
@@ -326,9 +367,7 @@ async function createEvent(data) {
 async function deleteEvent(eventId) {
   const res = await fetch(`${API_BASE}api/events/${eventId}`, {
     method: "DELETE",
-    headers: {
-      ...(getAuthToken() ? { "Authorization": `Bearer ${getAuthToken()}` } : {}),
-    },
+    credentials: 'include',
   });
   if (!res.ok) {
     const text = await res.text();
@@ -419,7 +458,7 @@ async function getStaffStats() {
 }
 
 // ========== State Management ==========
-// Auth state is kept in-memory and restored from localStorage (JWT token).
+// Auth state is kept in-memory and restored from the backend using an HttpOnly cookie.
 let currentUser = null;
 let authChecked = false;
 let currentPage = 'landing';
@@ -433,8 +472,12 @@ let selectedEventId = null;
 // == Theme Management ==
 
 function getSavedTheme() {
-  return localStorage.getItem('theme') ||
-    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  try {
+    return localStorage.getItem('theme') ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  } catch (e) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
 }
 
 function getLogoSrc(theme) {
@@ -455,8 +498,12 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', themeToApply);
 
   // Persist
-  localStorage.setItem('theme', themeToApply);
-  localStorage.setItem('logo_src', logoToApply);
+  try {
+    localStorage.setItem('theme', themeToApply);
+    localStorage.setItem('logo_src', logoToApply);
+  } catch (e) {
+    // ignore theme persistence failures
+  }
 }
 
 function toggleTheme() {
@@ -481,7 +528,7 @@ async function navigate(page) {
   const base = String(page).split('?')[0];
 
   const protectedStudentPages = ['student-dashboard', 'student-complaints', 'student-events'];
-  const protectedStaffPages = ['staff-dashboard', 'staff-complaints', 'staff-events'];
+  const protectedStaffPages = ['staff-dashboard', 'staff-complaints', 'staff-events', 'event-edit'];
 
   if (protectedStudentPages.includes(base) || protectedStaffPages.includes(base)) {
     await ensureCurrentUser(true);
@@ -549,7 +596,12 @@ function showToast(message, type = 'toast-success') {
     const toastContainer = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.classList.add('toast', type);
-    toast.innerHTML = `<i class="material-icons-round info-icon" aria-hidden="true">info</i> ${message}`
+    const iconEl = document.createElement('i');
+    iconEl.className = 'material-icons-round info-icon';
+    iconEl.setAttribute('aria-hidden', 'true');
+    iconEl.textContent = 'info';
+    toast.appendChild(iconEl);
+    toast.appendChild(document.createTextNode(` ${message}`));
     toastContainer.appendChild(toast);
     void toast.offsetWidth;
     toast.classList.add('slide-in');
@@ -640,7 +692,10 @@ function renderNavbar(role, activePage) {
   const mobileNav = nav.querySelector('[data-nav-mobile]');
   const userSpan = nav.querySelector('[data-nav-user]');
   
-  brand.setAttribute('onclick', `navigate('${isStudent ? 'student-dashboard' : 'staff-dashboard'}'); return false;`);
+  brand.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate(isStudent ? 'student-dashboard' : 'staff-dashboard');
+  });
   userSpan.textContent = currentUser?.name || 'User';
   // Ensure the theme icon in this cloned navbar reflects current theme
   const themeIconEl = nav.querySelector('.theme-toggle .material-icons-round');
@@ -654,13 +709,19 @@ function renderNavbar(role, activePage) {
     const linkEl = document.createElement('a');
     linkEl.href = '#';
     linkEl.className = `navbar-link ${activePage === link.page ? 'active' : ''}`;
-    linkEl.setAttribute('onclick', `navigate('${link.page}'); return false;`);
+    linkEl.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigate(link.page);
+    });
     linkEl.innerHTML = `${icon(link.icon)} ${link.label}`;
     linksContainer.appendChild(linkEl);
     
     const mobileLink = document.createElement('button');
     mobileLink.className = `navbar-mobile-link w-100 ${activePage === link.page ? 'active' : ''}`;
-    mobileLink.setAttribute('onclick', `navigate('${link.page}'); closeMobileNav();`);
+    mobileLink.addEventListener('click', () => {
+      navigate(link.page);
+      closeMobileNav();
+    });
     mobileLink.innerHTML = `${icon(link.icon)} ${link.label}`;
     mobileNav.appendChild(mobileLink);
   });
@@ -674,7 +735,7 @@ function renderNavbar(role, activePage) {
   
   const logoutBtn = document.createElement('button');
   logoutBtn.className = 'navbar-mobile-link w-100 logout';
-  logoutBtn.setAttribute('onclick', 'handleLogout()');
+  logoutBtn.addEventListener('click', handleLogout);
   logoutBtn.innerHTML = `${icon('logout')} Logout`;
   mobileNav.appendChild(logoutBtn);
   
@@ -841,10 +902,8 @@ async function handleStudentLogin(e) {
   try {
     const result = await loginStudent(email, password);
     if (result?.success) {
-      localStorage.setItem('authToken', result.token);
       currentUser = { id: result.id, email: result.email, name: result.name || result.email, role: result.role };
       authChecked = true;
-      localStorage.setItem('user', JSON.stringify(currentUser));
       showToast("Student Login Successful!");
       navigate('student-dashboard');        
       return;
@@ -864,10 +923,8 @@ async function handleStaffLogin(e) {
   try {
     const result = await loginStaff(email, password);
     if (result?.success) {
-      localStorage.setItem('authToken', result.token);
       currentUser = { id: result.id, email: result.email, name: result.name || result.email, role: result.role };
       authChecked = true;
-      localStorage.setItem('user', JSON.stringify(currentUser));
       navigate('staff-dashboard');      
       return;
     }
@@ -879,12 +936,12 @@ async function handleStaffLogin(e) {
 }
 
 async function handleLogout() {
-  currentUser = null;
-  authChecked = true;
   try {
-    localStorage.removeItem('user');
-    localStorage.removeItem('authToken');
-  } catch (e) { /* ignore */ }
+    await logout();
+  } catch (e) {
+    console.warn('Logout request failed, clearing client state anyway', e);
+  }
+  clearAuthState();
   navigate('landing');
 }
 
@@ -894,28 +951,22 @@ async function ensureCurrentUser(force = false) {
   authChecked = true;
 
   try {
-    const token = localStorage.getItem('authToken');
-    const saved = localStorage.getItem('user');
-
-    if (!token || !saved) {
+    const me = await getMe();
+    if (!me?.authenticated) {
+      clearAuthState();
       currentUser = null;
       return null;
     }
 
-    // Decode JWT payload to check expiry (no library needed — just base64 decode)
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const isExpired = payload.exp && (payload.exp * 1000) < Date.now();
-
-    if (isExpired) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      currentUser = null;
-      return null;
-    }
-
-    currentUser = JSON.parse(saved);
+    currentUser = {
+      id: me.id,
+      email: me.email,
+      name: me.name || me.email,
+      role: me.role,
+    };
   } catch (err) {
     console.warn('Failed to restore session', err);
+    clearAuthState();
     currentUser = null;
   }
 
@@ -1043,12 +1094,25 @@ async function openRegisterModal(eventId) {
   }
   
   if (studentInfoEl && currentUser) {
-    studentInfoEl.innerHTML = `
-      <div style="margin-top: 0.5rem;">
-        <div><strong>Name:</strong> ${currentUser.name || 'N/A'}</div>
-        <div><strong>Email:</strong> ${currentUser.email || 'N/A'}</div>
-      </div>
-    `;
+    studentInfoEl.replaceChildren();
+    const wrapper = document.createElement('div');
+    wrapper.style.marginTop = '0.5rem';
+
+    const nameRow = document.createElement('div');
+    const nameStrong = document.createElement('strong');
+    nameStrong.textContent = 'Name:';
+    nameRow.appendChild(nameStrong);
+    nameRow.appendChild(document.createTextNode(` ${currentUser.name || 'N/A'}`));
+
+    const emailRow = document.createElement('div');
+    const emailStrong = document.createElement('strong');
+    emailStrong.textContent = 'Email:';
+    emailRow.appendChild(emailStrong);
+    emailRow.appendChild(document.createTextNode(` ${currentUser.email || 'N/A'}`));
+
+    wrapper.appendChild(nameRow);
+    wrapper.appendChild(emailRow);
+    studentInfoEl.appendChild(wrapper);
   }
   
   const modal = document.getElementById('event-register-modal');
@@ -1127,21 +1191,26 @@ async function handleEventRegisterSubmit(e) {
   }
 }
 
-function openDetailsModal(complaint) {
+function openDetailsModalById(complaintId) {
+  const complaint = complaintsData.find(item => item.id === complaintId);
+  if (!complaint) {
+    showToast('Complaint details unavailable', "toast-alert");
+    return;
+  }
   const details = document.getElementById('complaint-details');
   details.innerHTML = `
     <div style="display: flex; flex-direction: column; gap: 1rem;">
       <div>
         <div style="font-size: 0.875rem; font-weight: 500; color: var(--muted-foreground);">Title</div>
-        <div style="color: var(--foreground);">${complaint.title}</div>
+        <div style="color: var(--foreground);">${escapeHtml(complaint.title)}</div>
       </div>
       <div>
         <div style="font-size: 0.875rem; font-weight: 500; color: var(--muted-foreground);">Category</div>
-        <div style="color: var(--foreground);">${complaint.category}</div>
+        <div style="color: var(--foreground);">${escapeHtml(complaint.category)}</div>
       </div>
       <div>
         <div style="font-size: 0.875rem; font-weight: 500; color: var(--muted-foreground);">Student</div>
-        <div style="color: var(--foreground);">${complaint.studentName}</div>
+        <div style="color: var(--foreground);">${escapeHtml(complaint.studentName)}</div>
       </div>
       <div>
         <div style="font-size: 0.875rem; font-weight: 500; color: var(--muted-foreground);">Status</div>
@@ -1149,15 +1218,15 @@ function openDetailsModal(complaint) {
       </div>
       <div>
         <div style="font-size: 0.875rem; font-weight: 500; color: var(--muted-foreground);">Description</div>
-        <div style="color: var(--muted-foreground); margin-top: 0.25rem;">${complaint.description}</div>
+        <div style="color: var(--muted-foreground); margin-top: 0.25rem;">${escapeHtml(complaint.description)}</div>
       </div>
       ${complaint.rated ? `
       <div>
         <div style="font-size: 0.875rem; font-weight: 500; color: var(--muted-foreground); margin-top:0.5rem;">Feedback</div>
         <div style="margin-top:0.25rem;">
           <div style="font-weight:600;color: var(--muted-foreground);">Rating: ${'★'.repeat(complaint.rating || 0)}${'☆'.repeat(5 - (complaint.rating || 0))}</div>
-          ${complaint.feedbackTags && complaint.feedbackTags.length ? `<div style="margin-top:0.5rem;">Tags: ${complaint.feedbackTags.map(t => `<span style=\"margin-right:0.5rem;\">${t}</span>`).join('')}</div>` : ''}
-          ${complaint.feedbackText ? `<div style="margin-top:0.5rem;color:var(--muted-foreground);">${complaint.feedbackText}</div>` : ''}
+          ${complaint.feedbackTags && complaint.feedbackTags.length ? `<div style="margin-top:0.5rem;">Tags: ${complaint.feedbackTags.map(t => `<span style="margin-right:0.5rem;">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+          ${complaint.feedbackText ? `<div style="margin-top:0.5rem;color:var(--muted-foreground);">${escapeHtml(complaint.feedbackText)}</div>` : ''}
         </div>
       </div>
       ` : ''}
@@ -1336,9 +1405,12 @@ function fileToBase64(file) {
 // Store event image in localStorage
 function storeEventImage(eventId, base64Data) {
   try {
-    const eventImages = JSON.parse(localStorage.getItem('eventImages') || '{}');
+    if (!/^data:image\/(png|jpe?g|gif|webp|bmp);base64,[a-z0-9+/=]+$/i.test(String(base64Data || ''))) {
+      throw new Error('Unsupported image format');
+    }
+    const eventImages = JSON.parse(localStorage.getItem(EVENT_IMAGES_KEY) || '{}');
     eventImages[eventId] = base64Data;
-    localStorage.setItem('eventImages', JSON.stringify(eventImages));
+    localStorage.setItem(EVENT_IMAGES_KEY, JSON.stringify(eventImages));
   } catch (err) {
     console.warn('Could not store event image:', err);
   }
@@ -1347,8 +1419,8 @@ function storeEventImage(eventId, base64Data) {
 // Retrieve event image from localStorage
 function getStoredEventImage(eventId) {
   try {
-    const eventImages = JSON.parse(localStorage.getItem('eventImages') || '{}');
-    return eventImages[eventId] || null;
+    const eventImages = JSON.parse(localStorage.getItem(EVENT_IMAGES_KEY) || '{}');
+    return getImageSrc(eventImages[eventId] || '');
   } catch (err) {
     console.warn('Could not retrieve event image:', err);
     return null;
@@ -1373,7 +1445,7 @@ async function handleCreateEvent(e) {
     try {
       const base64 = await fileToBase64(imageFile);
       // We'll store this with the event ID after creation
-      window.pendingEventImage = base64;
+      pendingEventImage = base64;
     } catch (err) {
       console.warn('Could not convert image to base64:', err);
     }
@@ -1397,9 +1469,9 @@ async function handleCreateEvent(e) {
       uiEvent.imgsrc = imgsrc;
 
       // Store image in localStorage if we have one
-      if (window.pendingEventImage && result.id) {
-        storeEventImage(result.id, window.pendingEventImage);
-        delete window.pendingEventImage;
+      if (pendingEventImage && result.id) {
+        storeEventImage(result.id, pendingEventImage);
+        pendingEventImage = null;
       }
 
       // Keep the UI in sync
@@ -1549,10 +1621,10 @@ function renderComplaintsTable() {
   
   tbody.innerHTML = filtered.map(complaint => `
     <tr>
-      <td>${complaint.title}</td>
-      <td>${complaint.category}</td>
+      <td>${escapeHtml(complaint.title)}</td>
+      <td>${escapeHtml(complaint.category)}</td>
       <td>${renderStatusBadge(complaint.status)}</td>
-      <td>${complaint.date}</td>
+      <td>${escapeHtml(complaint.date)}</td>
       <td>
         <div class="action-buttons">
           ${complaint.status === 'Resolved' && (currentUser?.role === 'student') ? (
@@ -1563,15 +1635,6 @@ function renderComplaintsTable() {
     </tr>
   `).join('');
 }
-
-// Function to Check Image's Availability
-  function getImageSrc(src) {
-    if (!src || src.trim() === '') {
-      return 'images/fallback.webp';
-    }
-    return src;
-  }
-
 
 // Here, the events cards are populated from eventsData, which is updated from getEvents().
 function renderEventsList() {
@@ -1603,13 +1666,13 @@ function renderEventsList() {
     />
     <hr style="margin-bottom: 1em;">
       <div class="event-card-header">
-        <h3 class="event-card-title">${event.title}</h3>
+        <h3 class="event-card-title">${escapeHtml(event.title)}</h3>
         ${event.registered ? '<span class="status-badge badge-registered">Registered</span>' : ''}
       </div>
       <div class="event-card-date">
-        ${icon('calendar_today')} ${event.date}
+        ${icon('calendar_today')} ${escapeHtml(event.date)}
       </div>
-      <p class="event-card-description">${event.description}</p>
+      <p class="event-card-description">${escapeHtml(event.description)}</p>
       <div class="event-card-footer">
         <div class="event-card-registrations">
           ${icon('people')} ${event.registrations} registered
@@ -1650,13 +1713,13 @@ function renderUpcomingEvents() {
     />
     <hr style="margin-bottom: 1em;">
       <div class="event-card-header">
-        <h3 class="event-card-title">${event.title}</h3>
+        <h3 class="event-card-title">${escapeHtml(event.title)}</h3>
         ${event.registered ? '<span class="status-badge badge-registered">Registered</span>' : ''}
       </div>
       <div class="event-card-date">
-        ${icon('calendar_today')} ${event.date}
+        ${icon('calendar_today')} ${escapeHtml(event.date)}
       </div>
-      <p class="event-card-description">${event.description}</p>
+      <p class="event-card-description">${escapeHtml(event.description)}</p>
       <div class="event-card-footer">
         <div class="event-card-registrations">
           ${icon('people')} ${event.registrations} registered
@@ -1695,10 +1758,10 @@ function renderStaffComplaintsTable() {
   tbody.innerHTML = filtered.map(complaint => `
     <tr>
       <td>#${complaint.id}</td>
-      <td>${complaint.title}</td>
-      <td>${complaint.studentName || 'N/A'}</td>
-      <td>${complaint.category}</td>
-      <td>${complaint.date}</td>
+      <td>${escapeHtml(complaint.title)}</td>
+      <td>${escapeHtml(complaint.studentName || 'N/A')}</td>
+      <td>${escapeHtml(complaint.category)}</td>
+      <td>${escapeHtml(complaint.date)}</td>
       <td>
         <select class="status-select" value="${complaint.status}" onchange="handleUpdateStatus(${complaint.id}, this.value)">
           <option value="Pending" ${complaint.status === 'Pending' ? 'selected' : ''}>Pending</option>
@@ -1708,10 +1771,10 @@ function renderStaffComplaintsTable() {
       </td>
       <td>
         <div class="action-buttons">
-          <button class="btn btn-ghost btn-sm" onclick='openDetailsModal(${JSON.stringify(complaint)})'>
+          <button class="btn btn-ghost btn-sm" onclick="openDetailsModalById(${complaint.id})">
             ${icon('visibility')}
           </button>
-          ${complaint.rated ? `<button class="btn btn-ghost btn-sm" onclick='openDetailsModal(${JSON.stringify(complaint)})'>View feedback</button>` : ''}
+          ${complaint.rated ? `<button class="btn btn-ghost btn-sm" onclick="openDetailsModalById(${complaint.id})">View feedback</button>` : ''}
         </div>
       </td>
     </tr>
@@ -1744,8 +1807,8 @@ function renderStaffEventsTable() {
           onerror="this.onerror=null; this.src='images/fallback.webp';"
         />
       </td>
-      <td>${event.title}</td>
-      <td>${event.date}</td>
+      <td>${escapeHtml(event.title)}</td>
+      <td>${escapeHtml(event.date)}</td>
       <td>
         <div class="event-card-registrations">
           ${icon('people')} ${event.registrations}
@@ -1809,7 +1872,7 @@ function renderEventEdit() {
       if (event.imgsrc) {
         previewContainer.innerHTML = `
           <div style="font-size: 0.75rem; color: var(--muted-foreground); margin-bottom: 0.25rem;">Current image:</div>
-          <img id="current-image-preview" src="${event.imgsrc}" alt="Current event image" 
+          <img id="current-image-preview" src="${getImageSrc(event.imgsrc)}" alt="Current event image" 
                style="
                  width: 120px; 
                  height: 120px; 
@@ -1850,7 +1913,7 @@ function renderEventEdit() {
           // Restore original image if file selection is cleared
           previewContainer.innerHTML = `
             <div style="font-size: 0.75rem; color: var(--muted-foreground); margin-bottom: 0.25rem;">Current image:</div>
-            <img src="${event.imgsrc}" alt="Current event image" 
+            <img src="${getImageSrc(event.imgsrc)}" alt="Current event image" 
                  style="
                    width: 120px; 
                    height: 120px; 
@@ -1953,7 +2016,7 @@ async function render() {
   
   // Check auth for protected pages
   const protectedStudentPages = ['student-dashboard', 'student-complaints', 'student-events'];
-  const protectedStaffPages = ['staff-dashboard', 'staff-complaints', 'staff-events'];
+  const protectedStaffPages = ['staff-dashboard', 'staff-complaints', 'staff-events', 'event-edit'];
   
   const needsStudent = protectedStudentPages.includes(currentPage);
   const needsStaff = protectedStaffPages.includes(currentPage);
@@ -2104,23 +2167,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize API base URL before any backend calls
   await initApiBase();
 
-  // Try restoring user from localStorage (fast, no network)
-  try {
-    const saved = localStorage.getItem('user');
-    if (saved) {
-      currentUser = JSON.parse(saved);
-    }
-  } catch (e) {
-    // ignore parsing errors
-  }
-
-  // Verify token expiry and restore auth state
+  // Verify auth state with the backend instead of trusting browser storage.
   await ensureCurrentUser(true);
-
-  // Sync localStorage if user is still valid
-  if (currentUser) {
-    localStorage.setItem('user', JSON.stringify(currentUser));
-  }
 
   // Set initial page from URL hash (routing)
   currentPage = getPageFromHash();

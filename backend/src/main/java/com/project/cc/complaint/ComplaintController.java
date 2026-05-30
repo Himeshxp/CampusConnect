@@ -4,6 +4,7 @@ import com.project.cc.exception.ResourceNotFoundException;
 import com.project.cc.student.Student;
 import com.project.cc.student.StudentRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ public class ComplaintController {
     // ADD COMPLAINT
     @PostMapping("/add")
     public ResponseEntity<?> addComplaint(
-            @RequestBody ComplaintRequestDTO dto,
+            @Valid @RequestBody ComplaintRequestDTO dto,
             HttpServletRequest request
     ) {
         String role = (String) request.getAttribute("role");
@@ -57,8 +58,9 @@ public class ComplaintController {
     @GetMapping("/all")
     public ResponseEntity<?> getAll(HttpServletRequest request) {
         String role = (String) request.getAttribute("role");
+        Integer userId = (Integer) request.getAttribute("userId");
 
-        if (!"staff".equalsIgnoreCase(role)) {
+        if (userId == null || !"staff".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Only staff can view all complaints");
         }
@@ -74,8 +76,9 @@ public class ComplaintController {
             HttpServletRequest request
     ) {
         String role = (String) request.getAttribute("role");
+        Integer userId = (Integer) request.getAttribute("userId");
 
-        if (!"staff".equalsIgnoreCase(role)) {
+        if (userId == null || !"staff".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Only staff can update status");
         }
@@ -89,7 +92,7 @@ public class ComplaintController {
         String role = (String) request.getAttribute("role");
         Integer userId = (Integer) request.getAttribute("userId");
 
-        if (!"student".equalsIgnoreCase(role)) {
+        if (userId == null || !"student".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Only students can delete complaints");
         }

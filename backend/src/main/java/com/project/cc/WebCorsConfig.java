@@ -20,13 +20,11 @@ public class WebCorsConfig implements WebMvcConfigurer {
                         "http://127.0.0.1:3000",
                         "http://localhost:8080",
                         "http://127.0.0.1:8080",
-                        "http://192.168.31.187:5500",
-                        "null"  // file:// origin shown as "null" by browsers
+                        "http://192.168.31.187:5500"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .exposedHeaders("Authorization")
-                .allowCredentials(false);
+                .allowCredentials(true);
     }
 }
 

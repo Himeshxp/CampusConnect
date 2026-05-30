@@ -23,8 +23,12 @@ public class EventService {
     // =================================================
     //  EVENT ENDPOINTS
     // =================================================
-    public Event addEvent(Event event) {
-        return eventRepo.save(event);
+    public Event addEvent(EventRequestDTO event) {
+        Event entity = new Event();
+        entity.setEventName(event.eventName().trim());
+        entity.setEventDescription(event.eventDescription().trim());
+        entity.setEventDate(event.eventDate().trim());
+        return eventRepo.save(entity);
     }
 
     public Event getEventById(Integer id) {
@@ -32,12 +36,12 @@ public class EventService {
                 .orElseThrow(() -> new RuntimeException("Event not found: " + id));
     }
 
-    public Event updateEvent(Integer id, Event eventData) {
+    public Event updateEvent(Integer id, EventRequestDTO eventData) {
         Event event = eventRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
-        event.setEventName(eventData.getEventName());
-        event.setEventDescription(eventData.getEventDescription());
-        event.setEventDate(eventData.getEventDate());
+        event.setEventName(eventData.eventName().trim());
+        event.setEventDescription(eventData.eventDescription().trim());
+        event.setEventDate(eventData.eventDate().trim());
         return eventRepo.save(event);
     }
 

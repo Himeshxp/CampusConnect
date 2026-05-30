@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Date;
 
 @Component
@@ -17,6 +19,7 @@ public class JwtUtil {
     private String secret;
 
     private Key key;
+    private final Map<String, Date> revokedTokens = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -54,10 +57,33 @@ public class JwtUtil {
         return extractAllClaims(token).getSubject();
     }
 
+    public Date extractExpiration(String token) {
+        return extractAllClaims(token).getExpiration();
+    }
+
+    public void revokeToken(String token) {
+        try {
+            revokedTokens.put(token, extractExpiration(token));
+        } catch (Exception ignored) {
+            // Ignore malformed tokens during logout.
+        }
+    }
+
+    public boolean isTokenRevoked(String token) {
+        cleanupRevokedTokens();
+        Date expiry = revokedTokens.get(token);
+        return expiry != null && expiry.after(new Date());
+    }
+
+    private void cleanupRevokedTokens() {
+        Date now = new Date();
+        revokedTokens.entrySet().removeIf(entry -> entry.getValue() == null || !entry.getValue().after(now));
+    }
+
     public boolean validateToken(String token) {
         try {
             extractAllClaims(token);
-            return true;
+            return !isTokenRevoked(token);
         } catch (Exception e) {
             return false;
         }

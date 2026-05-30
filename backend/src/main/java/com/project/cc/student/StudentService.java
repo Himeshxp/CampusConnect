@@ -21,6 +21,9 @@ public class StudentService {
 
 
     public StudentResponseDTO addStudent(CreateStudentRequestDTO studentdto) {
+        if (studentrepository.existsByEmail(studentdto.email())) {
+            throw new IllegalStateException("An account with this email already exists");
+        }
         Student student = studentmapper.toEntity(studentdto);
         student.setPassword(encoder.encode(studentdto.password()));
         Student savedstudent = studentrepository.save(student);

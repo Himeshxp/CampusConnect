@@ -61,7 +61,14 @@ public class EventRegistrationController {
     }
 
     @GetMapping("/{eventId}")
-    public ResponseEntity<?> getEventRegistrations(@PathVariable Integer eventId) {
+    public ResponseEntity<?> getEventRegistrations(@PathVariable Integer eventId, HttpServletRequest request) {
+        Integer userId = (Integer) request.getAttribute("userId");
+        String role = (String) request.getAttribute("role");
+
+        if (userId == null || !"staff".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Staff only");
+        }
+
         return ResponseEntity.ok(eventService.getEventRegistrations(eventId));
     }
 }

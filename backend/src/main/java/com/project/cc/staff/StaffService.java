@@ -22,6 +22,9 @@ public class StaffService {
     }
 
     public StaffResponseDTO addStaff(CreateStaffRequestDTO staffdto) {
+        if (staffRepository.existsByEmail(staffdto.email())) {
+            throw new IllegalStateException("A staff account with this email already exists");
+        }
         Staff staff = staffMapper.toEntity(staffdto);
         staff.setPassword(passwordEncoder.encode(staffdto.password()));
         Staff savedStaff = staffRepository.save(staff);

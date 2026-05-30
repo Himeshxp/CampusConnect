@@ -1,6 +1,7 @@
 package com.project.cc.event;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +19,10 @@ public class EventController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> addEvent(@RequestBody Event event, HttpServletRequest request) {
+    public ResponseEntity<?> addEvent(@Valid @RequestBody EventRequestDTO event, HttpServletRequest request) {
         String role = (String) request.getAttribute("role");
-        if (!"staff".equalsIgnoreCase(role)) {
+        Integer userId = (Integer) request.getAttribute("userId");
+        if (userId == null || !"staff".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Only staff can add events");
         }
         return ResponseEntity.ok(eventService.addEvent(event));
@@ -49,11 +51,12 @@ public class EventController {
     @PutMapping("/update/{id}")
     public ResponseEntity<?> updateEvent(
             @PathVariable Integer id,
-            @RequestBody Event eventData,
+            @Valid @RequestBody EventRequestDTO eventData,
             HttpServletRequest request
     ) {
         String role = (String) request.getAttribute("role");
-        if (!"staff".equalsIgnoreCase(role)) {
+        Integer userId = (Integer) request.getAttribute("userId");
+        if (userId == null || !"staff".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Only staff can update events");
         }
         return ResponseEntity.ok(eventService.updateEvent(id, eventData));
