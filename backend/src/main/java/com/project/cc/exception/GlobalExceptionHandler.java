@@ -11,11 +11,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-// handling the global exception
+
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Handling Validation Errors
+    //  Validation Errors
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationErrors(MethodArgumentNotValidException ex)
     {
@@ -28,14 +28,14 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    // Handling custom not found exception
+    //  custom not found exception
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<?> handleNotFound(ResourceNotFoundException ex){
         Map<String, String> errors = new HashMap<>();
         errors.put("message", "resource not found");
         return new ResponseEntity<>(errors, HttpStatus.NOT_FOUND);
     }
-    // Handling conflict errors (e.g. already registered)
+    //  conflict errors ( already registered wala error)
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<?> handleConflict(IllegalStateException ex)
     {
@@ -44,7 +44,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errors, HttpStatus.CONFLICT);
     }
 
-    // handling generic errors
+    // generic errors
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleException(Exception ex)
     {
