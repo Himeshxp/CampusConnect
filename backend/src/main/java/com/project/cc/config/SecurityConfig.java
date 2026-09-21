@@ -36,8 +36,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/student/add").permitAll()
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
+                        .requestMatchers("/api/admin/**").hasAuthority("admin")
+                        .requestMatchers("/api/student/add").hasAuthority("admin")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/staff/add").hasAuthority("admin")
                         .requestMatchers("/api/staff/**").hasAuthority("staff")
                         .requestMatchers("/api/student/all", "/api/student/{id}").hasAuthority("staff")
                         .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/student/**").hasAuthority("staff")

@@ -21,11 +21,10 @@ public class Staff {
     private String password;
     private String role="STAFF";
     public Staff(String firstName, String lastName, String email, String password, String role) {
-        this.firstName = firstName != null ? firstName : "";
-        this.lastName = lastName != null ? lastName : "";
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.email = email;
         this.password = password;
-        this.role = role != null ? role : "STAFF";
     }
 
     public Staff() {

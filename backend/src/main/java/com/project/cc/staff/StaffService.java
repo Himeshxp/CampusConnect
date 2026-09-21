@@ -6,9 +6,9 @@ import java.util.List;
 
 @Service
 public class StaffService {
-    private StaffRepository staffRepository;
-    private StaffMapper staffMapper;
-    private PasswordEncoder passwordEncoder;
+    private final StaffRepository staffRepository;
+    private final StaffMapper staffMapper;
+    private final PasswordEncoder passwordEncoder;
 
     public StaffService(StaffRepository staffRepository, StaffMapper staffMapper, PasswordEncoder passwordEncoder) {
         this.staffRepository = staffRepository;

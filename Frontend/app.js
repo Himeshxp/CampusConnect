@@ -173,6 +173,30 @@ async function loginStaff(email, password) {
   return response.json();
 }
 
+async function loginAdmin(email, password) {
+  const response = await fetch(`${API_BASE}api/auth/login`, {
+    method: "POST",
+    credentials: 'include',
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, role: "admin" }),
+  });
+  return response.json();
+}
+
+async function adminCreateStudent(data) {
+  return fetchJson(`${API_BASE}api/admin/students`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+async function adminCreateStaff(data) {
+  return fetchJson(`${API_BASE}api/admin/staff`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 async function logout() {
   const res = await fetch(`${API_BASE}api/auth/logout`, {
     method: 'POST',
@@ -529,12 +553,13 @@ async function navigate(page) {
 
   const protectedStudentPages = ['student-dashboard', 'student-complaints', 'student-events'];
   const protectedStaffPages = ['staff-dashboard', 'staff-complaints', 'staff-events', 'event-edit'];
+  const protectedAdminPages = ['admin-dashboard'];
 
-  if (protectedStudentPages.includes(base) || protectedStaffPages.includes(base)) {
+  if (protectedStudentPages.includes(base) || protectedStaffPages.includes(base) || protectedAdminPages.includes(base)) {
     await ensureCurrentUser(true);
 
     if (!currentUser) {
-      window.location.hash = '#student-login';
+      window.location.hash = protectedAdminPages.includes(base) ? '#admin-login' : '#student-login';
       return;
     }
 
@@ -546,6 +571,11 @@ async function navigate(page) {
 
     if (protectedStaffPages.includes(base) && currentUser.role !== 'staff') {
       window.location.hash = '#staff-login';
+      return;
+    }
+
+    if (protectedAdminPages.includes(base) && currentUser.role !== 'admin') {
+      window.location.hash = '#admin-login';
       return;
     }
   }
@@ -589,6 +619,15 @@ function toggleVisibility(eyeicon) {
   passwordInput.type === 'text'
   ? eyeicon.firstElementChild.textContent = 'visibility_off'
   : eyeicon.firstElementChild.textContent = 'visibility'
+}
+
+function toggleVisibilityForInput(eyeicon, inputId) {
+  const passwordInput = document.getElementById(inputId);
+  if (!passwordInput) return;
+  passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+  eyeicon.firstElementChild.textContent = passwordInput.type === 'text'
+    ? 'visibility_off'
+    : 'visibility';
 }
 
 // function to show toast takes two arguments
@@ -638,6 +677,11 @@ function renderStaffLoginPage() {
   return clone ? clone : document.createDocumentFragment();
 }
 
+function renderAdminLoginPage() {
+  const clone = cloneTemplate('admin-login');
+  return clone ? clone : document.createDocumentFragment();
+}
+
 // Smooth Hover Indicator for Navbar Links
 function initNavbarLinksIndicator(container) {
   const indicator = container.querySelector('.navbar-links-indicator');
@@ -671,7 +715,12 @@ function initNavbarLinksIndicator(container) {
 
 function renderNavbar(role, activePage) {
   const isStudent = role === 'student';
-  const links = isStudent 
+  const isAdmin = role === 'admin';
+  const links = isAdmin
+    ? [
+        { page: 'admin-dashboard', label: 'Admin', icon: 'admin_panel_settings' },
+      ]
+    : isStudent 
     ? [
         { page: 'student-dashboard', label: 'Home', icon: 'home' },
         { page: 'student-complaints', label: 'Complaints', icon: 'report_problem' },
@@ -694,7 +743,7 @@ function renderNavbar(role, activePage) {
   
   brand.addEventListener('click', (e) => {
     e.preventDefault();
-    navigate(isStudent ? 'student-dashboard' : 'staff-dashboard');
+    navigate(isAdmin ? 'admin-dashboard' : isStudent ? 'student-dashboard' : 'staff-dashboard');
   });
   userSpan.textContent = currentUser?.name || 'User';
   // Ensure the theme icon in this cloned navbar reflects current theme
@@ -888,6 +937,20 @@ function renderStaffEvents() {
   return clone;
 }
 
+function renderAdminDashboard() {
+  const clone = cloneTemplate('admin-dashboard');
+  if (!clone) return document.createDocumentFragment();
+
+  const navbarPlaceholder = clone.querySelector('[data-navbar-placeholder]');
+  const navbar = renderNavbar('admin', 'admin-dashboard');
+  if (navbarPlaceholder && navbar) {
+    const navElement = navbar.querySelector('nav');
+    if (navElement) navbarPlaceholder.replaceWith(navElement);
+  }
+
+  return clone;
+}
+
 function renderNotFound() {
   const clone = cloneTemplate('not-found');
   return clone ? clone : document.createDocumentFragment();
@@ -932,6 +995,67 @@ async function handleStaffLogin(e) {
   } catch (err) {
     console.error('Staff login failed', err);
     showToast('Staff login failed', "toast-failed");
+  }
+}
+
+async function handleAdminLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('admin-email').value;
+  const password = document.getElementById('admin-password').value;
+
+  try {
+    const result = await loginAdmin(email, password);
+    if (result?.success) {
+      currentUser = { id: result.id, email: result.email, name: result.name || result.email, role: result.role };
+      authChecked = true;
+      showToast('Admin Login Successful!');
+      navigate('admin-dashboard');
+      return;
+    }
+    showToast(result?.message || 'Admin login failed', "toast-failed");
+  } catch (err) {
+    console.error('Admin login failed', err);
+    showToast('Admin login failed', "toast-failed");
+  }
+}
+
+async function handleAdminCreateStudent(e) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const payload = {
+    firstName: document.getElementById('admin-student-first-name').value.trim(),
+    lastName: document.getElementById('admin-student-last-name').value.trim(),
+    email: document.getElementById('admin-student-email').value.trim(),
+    password: document.getElementById('admin-student-password').value,
+  };
+
+  try {
+    await adminCreateStudent(payload);
+    form.reset();
+    showToast('Student account saved');
+  } catch (err) {
+    console.error('Failed to create student account', err);
+    showToast(err?.message || 'Failed to save student', "toast-failed");
+  }
+}
+
+async function handleAdminCreateStaff(e) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const payload = {
+    firstName: document.getElementById('admin-staff-first-name').value.trim(),
+    lastName: document.getElementById('admin-staff-last-name').value.trim(),
+    email: document.getElementById('admin-staff-email').value.trim(),
+    password: document.getElementById('admin-staff-password').value,
+  };
+
+  try {
+    await adminCreateStaff(payload);
+    form.reset();
+    showToast('Staff account saved');
+  } catch (err) {
+    console.error('Failed to create staff account', err);
+    showToast(err?.message || 'Failed to save staff', "toast-failed");
   }
 }
 
@@ -2017,10 +2141,12 @@ async function render() {
   // Check auth for protected pages
   const protectedStudentPages = ['student-dashboard', 'student-complaints', 'student-events'];
   const protectedStaffPages = ['staff-dashboard', 'staff-complaints', 'staff-events', 'event-edit'];
+  const protectedAdminPages = ['admin-dashboard'];
   
   const needsStudent = protectedStudentPages.includes(currentPage);
   const needsStaff = protectedStaffPages.includes(currentPage);
-  if (needsStudent || needsStaff) {
+  const needsAdmin = protectedAdminPages.includes(currentPage);
+  if (needsStudent || needsStaff || needsAdmin) {
     await ensureCurrentUser(); // ALWAYS verify with backend
   }
 
@@ -2031,6 +2157,11 @@ async function render() {
   
   if (needsStaff && (!currentUser || currentUser.role !== 'staff')) {
     navigate('staff-login');
+    return;
+  }
+
+  if (needsAdmin && (!currentUser || currentUser.role !== 'admin')) {
+    navigate('admin-login');
     return;
   }
   
@@ -2101,6 +2232,12 @@ async function render() {
       break;
     case 'staff-login':
       app.appendChild(renderStaffLoginPage());
+      break;
+    case 'admin-login':
+      app.appendChild(renderAdminLoginPage());
+      break;
+    case 'admin-dashboard':
+      app.appendChild(renderAdminDashboard());
       break;
     case 'student-dashboard':
       statsData = await getStudentStats();

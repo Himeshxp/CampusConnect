@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -29,6 +30,12 @@ public class AuthController {
     private final StaffRepository staffRepo;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${admin.email:}")
+    private String adminEmail;
+
+    @Value("${admin.password:}")
+    private String adminPassword;
 
     public AuthController(StudentRepository studentRepo,
                           StaffRepository staffRepo,
@@ -98,6 +105,30 @@ public class AuthController {
             ));
         }
 
+        if (role.equals("admin")) {
+            if (adminEmail == null || adminEmail.isBlank() || adminPassword == null || adminPassword.isBlank()) {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(Map.of("success", false, "message", "Admin login is not configured"));
+            }
+
+            if (!adminEmail.trim().equalsIgnoreCase(body.email.trim()) || !adminPasswordMatches(body.password)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("success", false, "message", "Invalid admin credentials"));
+            }
+
+            String token = jwtUtil.generateToken(adminEmail.trim(), "admin", 0);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, buildAuthCookie(token, request).toString())
+                    .body(Map.of(
+                            "success", true,
+                            "role", "admin",
+                            "id", 0,
+                            "email", adminEmail.trim(),
+                            "name", "Admin"
+                    ));
+        }
+
         return ResponseEntity.badRequest()
                 .body(Map.of("success", false, "message", "Invalid role"));
     }
@@ -141,6 +172,16 @@ public class AuthController {
                     "email", staff.getEmail(),
                     "name", (staff.getFirstName() + " " + staff.getLastName()).trim(),
                     "role", "staff"
+            ));
+        }
+
+        if ("admin".equalsIgnoreCase(role)) {
+            return ResponseEntity.ok(Map.of(
+                    "authenticated", true,
+                    "id", 0,
+                    "email", adminEmail == null || adminEmail.isBlank() ? "admin" : adminEmail.trim(),
+                    "name", "Admin",
+                    "role", "admin"
             ));
         }
 
@@ -191,5 +232,15 @@ public class AuthController {
                 .path("/")
                 .maxAge(0)
                 .build();
+    }
+
+    private boolean adminPasswordMatches(String rawPassword) {
+        String configuredPassword = adminPassword.trim();
+        if (configuredPassword.startsWith("$2a$")
+                || configuredPassword.startsWith("$2b$")
+                || configuredPassword.startsWith("$2y$")) {
+            return passwordEncoder.matches(rawPassword, configuredPassword);
+        }
+        return configuredPassword.equals(rawPassword);
     }
 }
