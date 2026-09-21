@@ -97,6 +97,14 @@
               </div>
               <span class="role-arrow"><span class="material-icons-round">arrow_forward</span></span>
             </div>
+            <div class="role-card role-card-admin" onclick="navigate('admin-login')">
+              <div class="role-icon"><span class="material-icons-round">admin_panel_settings</span></div>
+              <div class="role-content">
+                <h3>Admin Section</h3>
+                <p>Add student and staff accounts with your private admin credentials</p>
+              </div>
+              <span class="role-arrow"><span class="material-icons-round">arrow_forward</span></span>
+            </div>
           </div>
         </div>
         <div class="hero-decoration">
@@ -190,6 +198,45 @@
     </div>
   </template>
 
+  <!-- !: Admin Login Form -->
+  <template id="template-admin-login">
+    <div class="login-page login-page-admin">
+      <button class="theme-toggle theme-toggle-left" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
+        <span class="material-icons-round">light_mode</span>
+      </button>
+      <div class="login-container w-100">
+        <a href="#" class="login-back" onclick="navigate('landing'); return false;">
+          <span class="material-icons-round">arrow_back</span> Back to Home
+        </a>
+        <div class="login-card">
+          <div class="login-header">
+            <div class="login-icon login-icon-admin"><span class="material-icons-round">admin_panel_settings</span></div>
+            <h1>Admin Login</h1>
+            <p>Sign in to create student and staff accounts</p>
+          </div>
+          <form class="login-form" onsubmit="handleAdminLogin(event)">
+            <div class="form-group">
+              <label for="admin-email">Admin Email</label>
+              <div class="input-icon-wrapper">
+                <span class="input-icon"><span class="material-icons-round">mail</span></span>
+                <input type="email" id="admin-email" placeholder="Enter admin email" autocomplete="username" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="admin-password">Admin Password</label>
+              <div class="input-icon-wrapper">
+                <span class="input-icon"><span class="material-icons-round">lock</span></span>
+                <input type="password" id="admin-password" placeholder="Enter admin password" autocomplete="current-password" required>
+                <span class="eye-icon" onclick="toggleVisibilityForInput(this, 'admin-password')"><span class="material-icons-round">visibility</span></span>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-admin w-100 login-btn">Login</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </template>
+
   <template id="template-navbar">
     <nav class="navbar">
       <div class="navbar-container">
@@ -215,6 +262,86 @@
       </div>
       <div class="navbar-mobile" id="mobile-nav" data-nav-mobile></div>
     </nav>
+  </template>
+
+  <template id="template-admin-dashboard">
+    <div class="dashboard-layout">
+      <div data-navbar-placeholder></div>
+      <main class="dashboard-main">
+        <div class="dashboard-container">
+          <div class="dashboard-content">
+            <div class="dashboard-header">
+              <h1>Admin Section</h1>
+              <p>Create student and staff login accounts directly in the database</p>
+            </div>
+
+            <div class="admin-form-grid">
+              <section class="admin-form-panel">
+                <div class="admin-form-header">
+                  <span class="material-icons-round">school</span>
+                  <div>
+                    <h2>Add Student</h2>
+                    <p>Create a student email and password</p>
+                  </div>
+                </div>
+                <form class="modal-form" onsubmit="handleAdminCreateStudent(event)">
+                  <div class="form-group">
+                    <label for="admin-student-first-name">First Name</label>
+                    <input type="text" id="admin-student-first-name" placeholder="Student first name" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="admin-student-last-name">Last Name</label>
+                    <input type="text" id="admin-student-last-name" placeholder="Student last name">
+                  </div>
+                  <div class="form-group">
+                    <label for="admin-student-email">Email</label>
+                    <input type="email" id="admin-student-email" placeholder="student@example.com" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="admin-student-password">Password</label>
+                    <input type="password" id="admin-student-password" placeholder="Minimum 8 characters" minlength="8" maxlength="72" required>
+                  </div>
+                  <button type="submit" class="btn btn-student w-100">
+                    <span class="material-icons-round">person_add</span> Save Student
+                  </button>
+                </form>
+              </section>
+
+              <section class="admin-form-panel">
+                <div class="admin-form-header">
+                  <span class="material-icons-round">badge</span>
+                  <div>
+                    <h2>Add Staff</h2>
+                    <p>Create a staff email and password</p>
+                  </div>
+                </div>
+                <form class="modal-form" onsubmit="handleAdminCreateStaff(event)">
+                  <div class="form-group">
+                    <label for="admin-staff-first-name">First Name</label>
+                    <input type="text" id="admin-staff-first-name" placeholder="Staff first name" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="admin-staff-last-name">Last Name</label>
+                    <input type="text" id="admin-staff-last-name" placeholder="Staff last name">
+                  </div>
+                  <div class="form-group">
+                    <label for="admin-staff-email">Email</label>
+                    <input type="email" id="admin-staff-email" placeholder="staff@example.com" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="admin-staff-password">Password</label>
+                    <input type="password" id="admin-staff-password" placeholder="Minimum 8 characters" minlength="8" maxlength="72" required>
+                  </div>
+                  <button type="submit" class="btn btn-staff w-100">
+                    <span class="material-icons-round">person_add</span> Save Staff
+                  </button>
+                </form>
+              </section>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
   </template>
 
   <template id="template-student-dashboard">

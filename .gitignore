@@ -5,6 +5,7 @@ dist/
 # Java / Spring Boot
 target/
 .idea/
+.junie/memory
 *.iml
 application.properties.bak
 *.log

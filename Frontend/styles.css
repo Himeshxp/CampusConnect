@@ -54,6 +54,8 @@
   --student-primary-light: hsl(217, 91%, 95%);/* Background tint for Student */
   --staff-primary: hsl(262, 83%, 58%);        /* Primary color for Staff role */
   --staff-primary-light: hsl(262, 83%, 95%);  /* Background tint for Staff */
+  --admin-primary: hsl(168, 76%, 34%);        /* Primary color for Admin role */
+  --admin-primary-light: hsl(168, 76%, 94%);  /* Background tint for Admin */
 }
 
 /* Dark theme overrides (applied by setting data-theme="dark" on <html> or <body>) */
@@ -87,6 +89,7 @@
 
   --student-primary-light: hsl(217, 91%, 10%);
   --staff-primary-light: hsl(262, 83%, 10%);
+  --admin-primary-light: hsl(168, 76%, 10%);
 }
 
 /* Smooth transitions when toggling theme */
@@ -455,7 +458,7 @@ input, select, textarea {
   gap: 1.5rem;
   justify-content: center;
   align-items: stretch;
-  max-width: 48rem;
+  max-width: 66rem;
   margin: 0 auto;
 }
 
@@ -486,6 +489,10 @@ input, select, textarea {
   background: var(--staff-primary-light);
 }
 
+.role-card-admin:hover {
+  background: var(--admin-primary-light);
+}
+
 .role-icon {
   width: 3.5rem;
   height: 3.5rem;
@@ -503,6 +510,11 @@ input, select, textarea {
 
 .role-card-staff .role-icon {
   background: var(--staff-primary);
+  color: white;
+}
+
+.role-card-admin .role-icon {
+  background: var(--admin-primary);
   color: white;
 }
 
@@ -587,6 +599,10 @@ input, select, textarea {
   background: linear-gradient(to bottom right, var(--staff-primary-light), var(--background));
 }
 
+.login-page-admin {
+  background: linear-gradient(to bottom right, var(--admin-primary-light), var(--background));
+}
+
 .login-container {
   max-width: 28rem;
 }
@@ -653,6 +669,11 @@ input, select, textarea {
 
 .login-icon-staff {
   background: var(--staff-primary);
+  color: white;
+}
+
+.login-icon-admin {
+  background: var(--admin-primary);
   color: white;
 }
 
@@ -796,6 +817,11 @@ textarea::placeholder {
 
 .btn-staff {
   background: var(--staff-primary);
+  color: white;
+}
+
+.btn-admin {
+  background: var(--admin-primary);
   color: white;
 }
 
@@ -1176,6 +1202,48 @@ textarea::placeholder {
 .action-arrow:hover {
   background: var(--muted);
   border-radius: var(--full-round);
+}
+
+/* ========== Admin Account Forms ========== */
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.admin-form-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.admin-form-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-form-header > .material-icons-round {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--admin-primary-light);
+  color: var(--admin-primary);
+}
+
+.admin-form-header h2 {
+  font-size: 1.125rem;
+  color: var(--foreground);
+}
+
+.admin-form-header p {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
 }
 
 /* ========== Events ========== */
@@ -1688,6 +1756,10 @@ textarea::placeholder {
   
   .analytics-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
