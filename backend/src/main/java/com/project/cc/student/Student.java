@@ -20,7 +20,7 @@ public class Student {
     private String password;
     private String role = "STUDENT";
 
-    public Student(String firstName, String lastName, String email, String password, String role) {
+    public Student(String firstName, String lastName, String email, String password) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;

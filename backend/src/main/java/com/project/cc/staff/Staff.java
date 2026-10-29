@@ -1,12 +1,10 @@
 package com.project.cc.staff;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.*;
-import org.antlr.v4.runtime.misc.NotNull;
 
 @Data
 @AllArgsConstructor
@@ -20,7 +18,7 @@ public class Staff {
     private String email;
     private String password;
     private String role="STAFF";
-    public Staff(String firstName, String lastName, String email, String password, String role) {
+    public Staff(String firstName, String lastName, String email, String password) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
