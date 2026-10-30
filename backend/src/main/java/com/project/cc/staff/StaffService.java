@@ -31,7 +31,7 @@ public class StaffService {
         return staffMapper.toDTO(savedStaff);
     }
 
-    public StaffResponseDTO getStaff(Integer id) {
+    public StaffResponseDTO getStaffById(Integer id) {
         return staffRepository.findById(id)
                 .map(staffMapper::toDTO)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + id));

@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Size;
 public record CreateStaffRequestDTO(
         Integer id,
         @NotBlank @Size(max = 80) String firstName,
-        @Size(max = 80) String lastName,
+       @NotBlank @Size(max = 80) String lastName,
         @Email @NotBlank String email,
         @NotBlank @Size(min = 8, max = 72) String password
 ) {

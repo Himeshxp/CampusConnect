@@ -3,6 +3,7 @@ package com.project.cc.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -41,8 +42,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/student/add").hasAuthority("admin")
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/staff/add").hasAuthority("admin")
                         .requestMatchers("/api/staff/**").hasAuthority("staff")
+                        .requestMatchers(HttpMethod.DELETE, "/api/staff/**").hasAuthority("admin")
+                        .requestMatchers(HttpMethod.PATCH, "/api/staff/**").hasAuthority("staff")
+                        .requestMatchers(HttpMethod.PUT, "/api/staff/**").hasAuthority("admin")
                         .requestMatchers("/api/student/all", "/api/student/{id}").hasAuthority("staff")
                         .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/student/**").hasAuthority("staff")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/student/**").hasAuthority("admin")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);

@@ -215,20 +215,27 @@ public class AuthController {
     }
 
     private ResponseCookie buildAuthCookie(String token, HttpServletRequest request) {
+        // Render terminates TLS at its proxy, so request.isSecure() alone may be false
+        // even when the browser is using HTTPS. Cross-site frontend/API requests need
+        // SameSite=None and Secure for the browser to send this cookie on /api/auth/me.
+        boolean secureRequest = request.isSecure()
+                || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
         return ResponseCookie.from(AUTH_COOKIE_NAME, token)
                 .httpOnly(true)
-                .secure(request.isSecure())
-                .sameSite("Lax")
+                .secure(secureRequest)
+                .sameSite(secureRequest ? "None" : "Lax")
                 .path("/")
                 .maxAge(60 * 60 * 12)
                 .build();
     }
 
     private ResponseCookie clearAuthCookie(HttpServletRequest request) {
+        boolean secureRequest = request.isSecure()
+                || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
         return ResponseCookie.from(AUTH_COOKIE_NAME, "")
                 .httpOnly(true)
-                .secure(request.isSecure())
-                .sameSite("Lax")
+                .secure(secureRequest)
+                .sameSite(secureRequest ? "None" : "Lax")
                 .path("/")
                 .maxAge(0)
                 .build();
